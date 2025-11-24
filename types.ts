@@ -1,7 +1,7 @@
 export interface Lead {
   id: string;
   companyName: string;
-  type: 'B2B' | 'B2C' | 'Distributor' | 'Brand';
+  type: 'B2B' | 'B2C' | 'Distributor' | 'Brand' | 'Social';
   description: string;
   website?: string;
   location?: string;
@@ -18,7 +18,7 @@ export interface Lead {
 
 export interface SearchParams {
   query: string;
-  targetType: 'All' | 'B2B' | 'B2C' | 'Distributor';
+  targetType: 'All' | 'B2B' | 'B2C' | 'Distributor' | 'Social';
 }
 
 export interface OutreachScript {

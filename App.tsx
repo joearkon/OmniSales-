@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, Rocket, Briefcase, Zap, Languages } from 'lucide-react';
+import { Search, Filter, Rocket, Briefcase, Zap, Languages, AlertTriangle } from 'lucide-react';
 import { searchLeads } from './services/geminiService';
 import { Lead, Language } from './types';
 import { LeadCard } from './components/LeadCard';
@@ -13,7 +13,8 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const [lang, setLang] = useState<Language>('zh'); // Default to Chinese as per request context
+  const [lang, setLang] = useState<Language>('zh');
+  const [error, setError] = useState<string | null>(null);
 
   const t = TRANSLATIONS[lang];
 
@@ -24,12 +25,14 @@ const App: React.FC = () => {
     setLoading(true);
     setHasSearched(true);
     setLeads([]); 
+    setError(null);
 
     try {
       const results = await searchLeads(query, targetType, lang);
       setLeads(results);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Search failed", error);
+      setError(error.message || "An error occurred while searching.");
     } finally {
       setLoading(false);
     }
@@ -100,6 +103,7 @@ const App: React.FC = () => {
                 >
                   <option value="Distributor">{t.targetType.distributor}</option>
                   <option value="Brand">{t.targetType.brand}</option>
+                  <option value="Social">{t.targetType.social}</option>
                   <option value="B2B">{t.targetType.b2b}</option>
                   <option value="B2C">{t.targetType.b2c}</option>
                 </select>
@@ -127,7 +131,14 @@ const App: React.FC = () => {
 
       {/* Results Section */}
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
-        {!hasSearched ? (
+        {error ? (
+          <div className="max-w-lg mx-auto bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+            <AlertTriangle className="mx-auto text-red-500 mb-4" size={48} />
+            <h3 className="text-lg font-bold text-red-800 mb-2">Search Error</h3>
+            <p className="text-red-600 text-sm">{error}</p>
+            <p className="text-red-500 text-xs mt-4">Please check your API Key configuration or network connection.</p>
+          </div>
+        ) : !hasSearched ? (
           // Empty State
           <div className="text-center py-20 opacity-60">
             <Briefcase className="mx-auto text-slate-300 mb-4" size={64} />

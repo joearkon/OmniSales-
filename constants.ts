@@ -1,10 +1,11 @@
-import { LucideIcon, Factory, Users, Globe, ShoppingBag } from 'lucide-react';
+import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone } from 'lucide-react';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
   'B2C': { label: 'Direct Consumer', icon: Users, color: 'bg-green-100 text-green-700' },
   'Distributor': { label: 'Distributor', icon: Globe, color: 'bg-purple-100 text-purple-700' },
   'Brand': { label: 'Private Label Brand', icon: ShoppingBag, color: 'bg-orange-100 text-orange-700' },
+  'Social': { label: 'Social / KOL', icon: Smartphone, color: 'bg-rose-100 text-rose-700' },
 };
 
 export const TRANSLATIONS = {
@@ -40,7 +41,8 @@ export const TRANSLATIONS = {
         distributor: "Distributors",
         brand: "Private Label Brands",
         b2b: "General B2B",
-        b2c: "E-commerce Stores"
+        b2c: "E-commerce Stores",
+        social: "Social Media / KOL (Douyin/Red)"
     },
     outreach: {
         channel: "Channel",
@@ -58,7 +60,7 @@ export const TRANSLATIONS = {
     navSubtitle: "私密产品工厂销售助手",
     heroTitle: "寻找高价值 OEM/ODM 合作伙伴",
     heroSubtitle: "利用 AI 发掘适合我们工厂能力的经销商、贴牌品牌和电商卖家。",
-    searchPlaceholder: "例如：'欧洲硅胶振动棒品牌', '美国成人用品批发商'",
+    searchPlaceholder: "例如：'欧洲硅胶振动棒品牌', '小红书情趣用品博主'",
     searchButton: "寻找客源",
     scouting: "正在搜寻...",
     readyToHunt: "准备就绪",
@@ -69,7 +71,7 @@ export const TRANSLATIONS = {
     noLeads: "未找到线索。请尝试扩大搜索范围。",
     viewDetails: "查看详情 & 联络",
     match: "匹配度",
-    website: "官网",
+    website: "官网/主页",
     companyInfo: "企业信息",
     aiOutreach: "AI 话术生成",
     about: "简介",
@@ -85,7 +87,8 @@ export const TRANSLATIONS = {
         distributor: "经销商 / 代理商",
         brand: "贴牌品牌方 (Private Label)",
         b2b: "一般 B2B 客户",
-        b2c: "电商卖家 / 网店"
+        b2c: "电商卖家 / 网店",
+        social: "抖音/小红书/微信 (新媒体)"
     },
     outreach: {
         channel: "渠道",
@@ -100,4 +103,4 @@ export const TRANSLATIONS = {
   }
 };
 
-export const SAMPLE_LEADS = []; 
+export const SAMPLE_LEADS = [];
