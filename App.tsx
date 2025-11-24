@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Search, Filter, Rocket, Briefcase, Zap } from 'lucide-react';
+import { Search, Filter, Rocket, Briefcase, Zap, Languages } from 'lucide-react';
 import { searchLeads } from './services/geminiService';
-import { Lead } from './types';
+import { Lead, Language } from './types';
 import { LeadCard } from './components/LeadCard';
 import { LeadDetailModal } from './components/LeadDetailModal';
+import { TRANSLATIONS } from './constants';
 
 const App: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -12,6 +13,9 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [lang, setLang] = useState<Language>('zh'); // Default to Chinese as per request context
+
+  const t = TRANSLATIONS[lang];
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,10 +23,10 @@ const App: React.FC = () => {
 
     setLoading(true);
     setHasSearched(true);
-    setLeads([]); // Clear previous
+    setLeads([]); 
 
     try {
-      const results = await searchLeads(query, targetType);
+      const results = await searchLeads(query, targetType, lang);
       setLeads(results);
     } catch (error) {
       console.error("Search failed", error);
@@ -31,8 +35,12 @@ const App: React.FC = () => {
     }
   };
 
+  const toggleLang = () => {
+    setLang(prev => prev === 'en' ? 'zh' : 'en');
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
       {/* Navbar */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -40,24 +48,34 @@ const App: React.FC = () => {
             <div className="bg-indigo-600 p-2 rounded-lg">
               <Zap className="text-white" size={20} />
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-              OmniSales Intelligence
-            </span>
+            <div className="flex flex-col">
+              <span className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 leading-tight">
+                {t.navTitle}
+              </span>
+              <span className="text-[10px] text-slate-500 hidden sm:block leading-tight">
+                {t.navSubtitle}
+              </span>
+            </div>
           </div>
-          <div className="text-sm text-slate-500 hidden sm:block">
-            Intimate Product Factory Sales Assistant
-          </div>
+          
+          <button 
+            onClick={toggleLang}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 text-slate-600 text-sm font-medium transition-colors border border-transparent hover:border-slate-200"
+          >
+            <Languages size={16} />
+            <span>{lang === 'en' ? '中文' : 'English'}</span>
+          </button>
         </div>
       </nav>
 
       {/* Hero / Search Section */}
-      <div className="bg-white border-b border-slate-200 pb-12 pt-10">
-        <div className="max-w-4xl mx-auto px-4 text-center">
+      <div className="bg-white border-b border-slate-200 pb-12 pt-10 px-4">
+        <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
-            Find High-Value OEM/ODM Partners
+            {t.heroTitle}
           </h1>
           <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
-            Leverage AI to scout distributors, private label brands, and e-commerce sellers suitable for our factory capabilities.
+            {t.heroSubtitle}
           </p>
 
           <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
@@ -68,7 +86,7 @@ const App: React.FC = () => {
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="E.g., 'Silicone vibrator brands in Europe', 'Adult toy wholesalers USA'"
+                  placeholder={t.searchPlaceholder}
                   className="w-full pl-11 pr-4 py-4 bg-transparent outline-none text-slate-800 placeholder-slate-400"
                 />
               </div>
@@ -78,53 +96,53 @@ const App: React.FC = () => {
                 <select 
                   value={targetType}
                   onChange={(e) => setTargetType(e.target.value)}
-                  className="py-2 pl-2 pr-8 bg-slate-50 border border-transparent hover:border-slate-200 rounded-lg text-sm text-slate-700 outline-none cursor-pointer"
+                  className="py-2 pl-2 pr-8 bg-slate-50 border border-transparent hover:border-slate-200 rounded-lg text-sm text-slate-700 outline-none cursor-pointer w-full sm:w-auto"
                 >
-                  <option value="Distributor">Distributors</option>
-                  <option value="Brand">Private Label Brands</option>
-                  <option value="B2B">General B2B</option>
-                  <option value="B2C">E-commerce Stores</option>
+                  <option value="Distributor">{t.targetType.distributor}</option>
+                  <option value="Brand">{t.targetType.brand}</option>
+                  <option value="B2B">{t.targetType.b2b}</option>
+                  <option value="B2C">{t.targetType.b2c}</option>
                 </select>
               </div>
 
               <button 
                 type="submit"
                 disabled={loading}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-semibold transition-all flex items-center justify-center sm:w-auto w-full disabled:opacity-70 disabled:cursor-not-allowed"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-semibold transition-all flex items-center justify-center sm:w-auto w-full disabled:opacity-70 disabled:cursor-not-allowed shrink-0"
               >
                 {loading ? (
-                  <span className="flex items-center"><span className="animate-spin mr-2">⟳</span> Scouting...</span>
+                  <span className="flex items-center"><span className="animate-spin mr-2">⟳</span> {t.scouting}</span>
                 ) : (
-                  <span className="flex items-center">Find Leads <Rocket size={18} className="ml-2" /></span>
+                  <span className="flex items-center whitespace-nowrap">{t.searchButton} <Rocket size={18} className="ml-2" /></span>
                 )}
               </button>
             </div>
           </form>
           
           <div className="mt-4 text-xs text-slate-400">
-            Powered by Google Search Grounding • Public Business Data Only
+             Powered by Google Search Grounding • Public Business Data Only
           </div>
         </div>
       </div>
 
       {/* Results Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
         {!hasSearched ? (
           // Empty State
           <div className="text-center py-20 opacity-60">
             <Briefcase className="mx-auto text-slate-300 mb-4" size={64} />
-            <h3 className="text-xl font-medium text-slate-600">Ready to hunt</h3>
-            <p className="text-slate-500 mt-2">Enter your target keywords above to start generating leads.</p>
+            <h3 className="text-xl font-medium text-slate-600">{t.readyToHunt}</h3>
+            <p className="text-slate-500 mt-2">{t.readyToHuntDesc}</p>
           </div>
         ) : (
           <>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
               <h2 className="text-xl font-bold text-slate-800">
-                Found {leads.length} Potential Partners
+                {t.found} {leads.length} {t.partners}
               </h2>
               {leads.length > 0 && (
                 <span className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-100">
-                  AI Confidence: High
+                  {t.confidence}
                 </span>
               )}
             </div>
@@ -142,16 +160,17 @@ const App: React.FC = () => {
                 ))}
               </div>
             ) : leads.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
-                <p className="text-slate-500">No leads found. Try broadening your search terms (e.g., "Adult toys wholesaler" instead of a specific product).</p>
+              <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300 shadow-sm">
+                <p className="text-slate-500">{t.noLeads}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
                 {leads.map((lead) => (
                   <LeadCard 
                     key={lead.id} 
                     lead={lead} 
                     onAnalyze={setSelectedLead} 
+                    lang={lang}
                   />
                 ))}
               </div>
@@ -165,6 +184,7 @@ const App: React.FC = () => {
         <LeadDetailModal 
           lead={selectedLead} 
           onClose={() => setSelectedLead(null)} 
+          lang={lang}
         />
       )}
     </div>

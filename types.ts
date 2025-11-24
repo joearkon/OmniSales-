@@ -31,3 +31,5 @@ export enum AppView {
   DASHBOARD = 'DASHBOARD',
   LEAD_DETAIL = 'LEAD_DETAIL',
 }
+
+export type Language = 'en' | 'zh';

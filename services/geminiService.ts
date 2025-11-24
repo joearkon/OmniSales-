@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Lead, OutreachScript } from "../types";
+import { Lead, OutreachScript, Language } from "../types";
 
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
@@ -33,16 +33,20 @@ const leadSchema: Schema = {
   }
 };
 
-export const searchLeads = async (query: string, targetType: string): Promise<Lead[]> => {
+export const searchLeads = async (query: string, targetType: string, lang: Language): Promise<Lead[]> => {
   if (!apiKey) {
     console.error("No API Key found");
     throw new Error("Please set your API_KEY in the environment.");
   }
 
-  const modelId = "gemini-2.5-flash"; // Good for fast search & extraction
+  const modelId = "gemini-2.5-flash"; 
   
-  // Refine query based on user intent for better search grounding
-  const refinedQuery = `Find potential ${targetType} clients/partners for a private label (OEM) manufacturer in the intimate products/adult toy industry. Keywords: ${query}. Focus on companies that might need manufacturing or have distribution channels.`;
+  // Adjust prompt based on language
+  const langInstruction = lang === 'zh' 
+    ? "Respond in Simplified Chinese. Find companies relevant to the Chinese or International market as implied by the query." 
+    : "Respond in English.";
+
+  const refinedQuery = `Find potential ${targetType} clients/partners for a private label (OEM) manufacturer in the intimate products/adult toy industry. Keywords: ${query}. Focus on companies that might need manufacturing or have distribution channels. ${langInstruction}`;
 
   try {
     const response = await ai.models.generateContent({
@@ -58,6 +62,7 @@ export const searchLeads = async (query: string, targetType: string): Promise<Le
         2. Extract publicly available information (Name, Website, Location).
         3. Infer their "Potential Needs" based on their business model.
         4. Return a JSON array.
+        5. Ensure the 'description' and 'potentialNeeds' fields are written in ${lang === 'zh' ? 'Simplified Chinese' : 'English'}.
         `
       }
     });
@@ -67,17 +72,15 @@ export const searchLeads = async (query: string, targetType: string): Promise<Le
 
     const rawLeads = JSON.parse(jsonText) as any[];
     
-    // Enrich with grounding metadata if available to show sources
     const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => ({
       uri: chunk.web?.uri || '',
       title: chunk.web?.title || 'Source'
     })).filter((s: any) => s.uri) || [];
 
-    // Map to our internal Lead type, adding IDs
     return rawLeads.map((l, index) => ({
       ...l,
       id: `lead-${Date.now()}-${index}`,
-      searchSources: sources.slice(0, 3) // Attach top 3 general sources to all for reference, as direct mapping is hard 1:1
+      searchSources: sources.slice(0, 3)
     }));
 
   } catch (error) {
@@ -86,7 +89,7 @@ export const searchLeads = async (query: string, targetType: string): Promise<Le
   }
 };
 
-export const generateOutreach = async (lead: Lead, tone: string, channel: string): Promise<OutreachScript> => {
+export const generateOutreach = async (lead: Lead, tone: string, channel: string, lang: Language): Promise<OutreachScript> => {
   const modelId = "gemini-2.5-flash";
   
   const prompt = `
@@ -100,6 +103,7 @@ export const generateOutreach = async (lead: Lead, tone: string, channel: string
     Write a ${tone} message for ${channel} (e.g. Email, WeChat, LinkedIn).
     The goal is to open a conversation about manufacturing partnerships or supply chain.
     Keep it professional but persuasive.
+    Language: ${lang === 'zh' ? 'Simplified Chinese (Professional Business Tone)' : 'English'}.
     ${channel === 'WeChat' ? 'Keep it concise and suitable for instant messaging.' : 'Use a proper subject line if it is email.'}
   `;
 
@@ -114,8 +118,3 @@ export const generateOutreach = async (lead: Lead, tone: string, channel: string
     content: response.text || "Could not generate script."
   };
 };
-
-export const analyzeCompetitor = async (url: string): Promise<string> => {
-   // Placeholder for deeper analysis if needed
-   return "Analysis feature";
-}
