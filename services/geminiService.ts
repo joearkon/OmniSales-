@@ -8,7 +8,7 @@ const leadSchema: Schema = {
     type: Type.OBJECT,
     properties: {
       companyName: { type: Type.STRING },
-      type: { type: Type.STRING, enum: ['B2B', 'B2C', 'Distributor', 'Brand', 'Social'] },
+      type: { type: Type.STRING, enum: ['B2B', 'B2C', 'Distributor', 'Brand', 'Social', 'Exhibition'] },
       description: { type: Type.STRING },
       website: { type: Type.STRING },
       location: { type: Type.STRING },
@@ -40,17 +40,24 @@ export const searchLeads = async (query: string, targetType: string, lang: Langu
   const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-2.5-flash"; 
   
-  // Adjust prompt based on language
+  // Adjust prompt based on language and target region
   const langInstruction = lang === 'zh' 
-    ? "Respond in Simplified Chinese. Find companies/profiles relevant to the Chinese or International market." 
+    ? "Respond in Simplified Chinese. Focus on the Chinese market (Mainland, HK, Taiwan) and Asian markets. Prioritize finding WeChat IDs (微信号), Mobile Numbers, and official Chinese sources (like 1688, Qichacha, Baidu listings indexed by Google)." 
     : "Respond in English.";
 
   let searchContext = "";
+  
   if (targetType === 'Social') {
     searchContext = `
       Focus specifically on finding influencers (KOL/KOC), MCN agencies, or brands active on social media platforms like Xiaohongshu (RedNote), Douyin (TikTok), and WeChat Official Accounts. 
       Look for "Business Cooperation" contacts, "WeChat IDs", or profile descriptions that indicate they sell intimate products or are looking for suppliers.
-      Keywords to implicitly use in search: "site:xiaohongshu.com", "site:douyin.com", "WeChat Public Account", "商务合作", "supplier needed".
+      Keywords to implicitly use: "site:xiaohongshu.com", "site:douyin.com", "WeChat Public Account", "商务合作", "supplier needed".
+    `;
+  } else if (targetType === 'Exhibition') {
+    searchContext = `
+      Focus on finding companies that have participated in recent industry trade shows and exhibitions (e.g., Canton Fair, Shanghai International Adult Products Exhibition (API), Hong Kong AFE, CES Asia).
+      Look for "Exhibitor Lists" (参展商名录), "Catalogues", or news reports about participating brands.
+      Try to find the specific companies that were listed as exhibitors in 2023, 2024 or 2025.
     `;
   } else {
     searchContext = `
@@ -72,9 +79,9 @@ export const searchLeads = async (query: string, targetType: string, lang: Langu
         systemInstruction: `You are a specialized Sales Intelligence Agent for a factory. 
         Your goal is to find high-quality business leads based on the user's query using Google Search.
         
-        1. Search for real companies, social media profiles, or distributors suitable for OEM partnerships.
+        1. Search for real companies, social media profiles, or exhibitors suitable for OEM partnerships.
         2. Extract publicly available information (Name, Website/Profile Link, Location).
-        3. AGGRESSIVELY look for contact info: Phone numbers, Emails, and specifically "WeChat IDs" (微信号) or "Official Accounts" (公众号) if visible in public snippets or descriptions.
+        3. AGGRESSIVELY look for contact info: Phone numbers, Emails, and specifically "WeChat IDs" (微信号) or "Official Accounts" (公众号) if visible in public snippets, expo directories, or social bios.
         4. Infer their "Potential Needs" based on their business model.
         5. Return a JSON array.
         6. Ensure the 'description' and 'potentialNeeds' fields are written in ${lang === 'zh' ? 'Simplified Chinese' : 'English'}.
@@ -129,6 +136,7 @@ export const generateOutreach = async (lead: Lead, tone: string, channel: string
     
     Specific Instructions:
     ${channel === 'WeChat' ? 'Keep it concise and suitable for instant messaging. If they are an influencer/social account, mention how our factory can help them build their own brand (Private Label).' : 'Use a proper subject line if it is email.'}
+    ${lead.type === 'Exhibition' ? 'Mention that we saw they participated in a recent exhibition and we have complementary manufacturing capabilities.' : ''}
   `;
 
   const response = await ai.models.generateContent({

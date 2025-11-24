@@ -103,6 +103,7 @@ const App: React.FC = () => {
                 >
                   <option value="Distributor">{t.targetType.distributor}</option>
                   <option value="Brand">{t.targetType.brand}</option>
+                  <option value="Exhibition">{t.targetType.exhibition}</option>
                   <option value="Social">{t.targetType.social}</option>
                   <option value="B2B">{t.targetType.b2b}</option>
                   <option value="B2C">{t.targetType.b2c}</option>
