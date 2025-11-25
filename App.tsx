@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
-import { Search, Filter, Rocket, Briefcase, Zap, Languages, AlertTriangle, FileText, PieChart, TrendingUp, BarChart } from 'lucide-react';
+import { Search, Filter, Rocket, Briefcase, Zap, Languages, AlertTriangle, FileText, PieChart, TrendingUp, BarChart, List } from 'lucide-react';
 import { searchLeads } from './services/geminiService';
-import { Lead, Language } from './types';
+import { Lead, Language, CRMLead, MinedLead } from './types';
 import { LeadCard } from './components/LeadCard';
 import { LeadDetailModal } from './components/LeadDetailModal';
 import { MarketAnalyzer } from './components/MarketAnalyzer';
+import { CRMBoard } from './components/CRMBoard';
 import { TRANSLATIONS } from './constants';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'search' | 'analysis'>('search');
+  const [view, setView] = useState<'search' | 'analysis' | 'crm'>('search');
   const [query, setQuery] = useState('');
   const [targetType, setTargetType] = useState('Distributor');
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -18,6 +19,9 @@ const App: React.FC = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [lang, setLang] = useState<Language>('zh');
   const [error, setError] = useState<string | null>(null);
+
+  // CRM State
+  const [crmLeads, setCrmLeads] = useState<CRMLead[]>([]);
 
   const t = TRANSLATIONS[lang];
 
@@ -43,6 +47,26 @@ const App: React.FC = () => {
 
   const toggleLang = () => {
     setLang(prev => prev === 'en' ? 'zh' : 'en');
+  };
+
+  // CRM Handlers
+  const addToCRM = (minedLead: MinedLead) => {
+    const newLead: CRMLead = {
+      ...minedLead,
+      id: `crm-${Date.now()}`,
+      status: 'New',
+      addedAt: new Date().toISOString(),
+      notes: ''
+    };
+    setCrmLeads(prev => [newLead, ...prev]);
+  };
+
+  const updateCRMLead = (id: string, updates: Partial<CRMLead>) => {
+    setCrmLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+  };
+
+  const deleteCRMLead = (id: string) => {
+    setCrmLeads(prev => prev.filter(l => l.id !== id));
   };
 
   return (
@@ -78,6 +102,12 @@ const App: React.FC = () => {
                 >
                   {t.nav.marketIntel}
                 </button>
+                <button 
+                  onClick={() => setView('crm')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'crm' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  {t.nav.crm}
+                </button>
              </div>
 
              <button 
@@ -92,24 +122,43 @@ const App: React.FC = () => {
       </nav>
 
       {/* Mobile Tabs */}
-      <div className="md:hidden bg-white border-b border-slate-200 px-4 py-2 flex gap-2">
+      <div className="md:hidden bg-white border-b border-slate-200 px-4 py-2 flex gap-2 overflow-x-auto">
           <button 
             onClick={() => setView('search')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium text-center ${view === 'search' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'}`}
+            className={`flex-1 py-2 px-2 rounded-lg text-sm font-medium text-center whitespace-nowrap ${view === 'search' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'}`}
           >
             {t.nav.leadScout}
           </button>
           <button 
             onClick={() => setView('analysis')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium text-center ${view === 'analysis' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'}`}
+            className={`flex-1 py-2 px-2 rounded-lg text-sm font-medium text-center whitespace-nowrap ${view === 'analysis' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'}`}
           >
             {t.nav.marketIntel}
+          </button>
+          <button 
+            onClick={() => setView('crm')}
+            className={`flex-1 py-2 px-2 rounded-lg text-sm font-medium text-center whitespace-nowrap ${view === 'crm' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'}`}
+          >
+            {t.nav.crm}
           </button>
       </div>
 
       {view === 'analysis' ? (
         <div className="flex-grow py-10">
-           <MarketAnalyzer lang={lang} />
+           <MarketAnalyzer 
+              lang={lang} 
+              onAddToCRM={addToCRM} 
+              crmLeads={crmLeads.map(l => l.accountName)} 
+            />
+        </div>
+      ) : view === 'crm' ? (
+        <div className="flex-grow py-10">
+           <CRMBoard 
+              leads={crmLeads} 
+              onUpdate={updateCRMLead} 
+              onDelete={deleteCRMLead} 
+              lang={lang} 
+           />
         </div>
       ) : (
         <>
@@ -175,11 +224,32 @@ const App: React.FC = () => {
           {/* Results Section */}
           <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
             {error ? (
-              <div className="max-w-lg mx-auto bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+              <div className="max-w-lg mx-auto bg-red-50 border border-red-200 rounded-xl p-6 text-center shadow-sm">
                 <AlertTriangle className="mx-auto text-red-500 mb-4" size={48} />
-                <h3 className="text-lg font-bold text-red-800 mb-2">Search Error</h3>
-                <p className="text-red-600 text-sm">{error}</p>
-                <p className="text-red-500 text-xs mt-4">Please check your API Key configuration or network connection.</p>
+                <h3 className="text-lg font-bold text-red-800 mb-2">{lang === 'zh' ? 'API 密钥缺失或错误' : 'API Key Missing or Invalid'}</h3>
+                <p className="text-red-700 text-sm mb-4 font-medium">
+                  {lang === 'zh' 
+                    ? '系统无法从 process.env.API_KEY 获取到有效的 Google Gemini API 密钥。' 
+                    : 'System could not retrieve a valid Google Gemini API Key from process.env.API_KEY.'}
+                </p>
+                
+                <div className="text-left bg-white/60 p-4 rounded-lg border border-red-100 text-xs text-red-800">
+                    <p className="font-bold mb-2 text-sm">{lang === 'zh' ? '如果您正在部署到 EdgeOne / Vercel：' : 'If deploying to EdgeOne / Vercel:'}</p>
+                    <ul className="list-disc list-inside space-y-1.5">
+                        <li>
+                            {lang === 'zh' ? '请进入项目的' : 'Go to project'} <strong>Settings (设置)</strong> {'>'} <strong>Environment Variables (环境变量)</strong>
+                        </li>
+                        <li>
+                            {lang === 'zh' ? '添加变量名：' : 'Add Key:'} <code className="bg-red-100 px-1 rounded">API_KEY</code>
+                        </li>
+                        <li>
+                            {lang === 'zh' ? '变量值：粘贴您的' : 'Value: Paste your'} <strong>Google Gemini API Key</strong>
+                        </li>
+                        <li>
+                            {lang === 'zh' ? '保存并' : 'Save and'} <strong>Redeploy (重新部署)</strong>
+                        </li>
+                    </ul>
+                </div>
               </div>
             ) : !hasSearched ? (
               // Empty State

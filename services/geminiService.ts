@@ -71,6 +71,7 @@ const leadMiningSchema: Schema = {
         properties: {
           platform: { type: Type.STRING },
           accountName: { type: Type.STRING },
+          leadType: { type: Type.STRING, enum: ['Factory', 'User', 'KOL'], description: "Strict classification: Factory, User, or KOL" },
           valueCategory: { type: Type.STRING, enum: ['High Value User', 'Medium Value User', 'Low Value User', 'Potential Partner'] },
           reason: { type: Type.STRING, description: "Reason for the value assessment e.g. Clear need + strong purchasing power" },
           suggestedAction: { type: Type.STRING, description: "Specific outreach advice" },
@@ -363,7 +364,13 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
       promptInstructions = `
         ${visualRules}
         Evaluate the value of the following leads/users based on their content. 
-        Distinguish between:
+        
+        Strictly classify each lead into one of these 'leadType' categories:
+        1. 'Factory': A manufacturing business, competitor, or OEM.
+        2. 'KOL': An influencer, blogger, or content creator.
+        3. 'User': An end-user or consumer.
+
+        Then, assign a 'valueCategory':
         - High Value User (Clear need + strong purchasing power, e.g. "Appointment made", "Want safe product")
         - Medium Value User (Has need but limited budget/hesitant)
         - Low Value User (Casual browsing)
@@ -372,10 +379,11 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
         For each lead found in the TEXT or IMAGES:
         1. Identify the Platform (Douyin/Xiaohongshu/WeChat) using the visual rules.
         2. Identify the Account Name.
-        3. Assign the 'valueCategory' from the list above.
-        4. Explain the 'reason' (e.g., "Clear need + health conscious").
-        5. Suggest a 'suggestedAction' (e.g., "Direct Message with product safety guide", "Ask for business collab").
-        6. Provide context summary.
+        3. Identify the Lead Type (Factory/KOL/User).
+        4. Assign the 'valueCategory'.
+        5. Explain the 'reason' (e.g., "Clear need + health conscious").
+        6. Suggest a 'suggestedAction'.
+        7. Provide context summary.
         ${baseLangInstruction}
       `;
       schema = leadMiningSchema;

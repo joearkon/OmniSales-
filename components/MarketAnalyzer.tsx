@@ -1,15 +1,17 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { ANALYSIS_MODES, TRANSLATIONS } from '../constants';
 import { AnalysisMode, Language, AnalysisResult, MinedLead, StrategicOutreachResult } from '../types';
 import { analyzeMarketData, generateStrategicOutreach } from '../services/geminiService';
-import { Sparkles, Loader2, AlertTriangle, Upload, Image as ImageIcon, X, Target, Download, FileText as FileIcon, ChevronDown, ChevronUp, Copy } from 'lucide-react';
+import { Sparkles, Loader2, AlertTriangle, Upload, Image as ImageIcon, X, Target, Download, FileText as FileIcon, ChevronDown, ChevronUp, Copy, UserPlus, Check, User, Factory, Smartphone } from 'lucide-react';
 
 interface MarketAnalyzerProps {
   lang: Language;
+  onAddToCRM: (lead: MinedLead) => void;
+  crmLeads: string[]; // List of account names already in CRM to show "Added" state
 }
 
-export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang }) => {
+export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM, crmLeads }) => {
   const [text, setText] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [mode, setMode] = useState<AnalysisMode>('Classification');
@@ -108,8 +110,8 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang }) => {
 
     switch (res.mode) {
       case 'LeadMining':
-        headers = ['Platform', 'Account Name', 'Value Category', 'Reason', 'Suggested Action', 'Context'];
-        rows = res.data.leads.map(l => [l.platform, l.accountName, l.valueCategory, l.reason, l.suggestedAction, l.context]);
+        headers = ['Platform', 'Account Name', 'Type', 'Value Category', 'Reason', 'Suggested Action', 'Context'];
+        rows = res.data.leads.map(l => [l.platform, l.accountName, l.leadType, l.valueCategory, l.reason, l.suggestedAction, l.context]);
         break;
       case 'Identity':
         headers = ['Platform', 'Name', 'Identity', 'Description'];
@@ -158,7 +160,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang }) => {
       case 'LeadMining':
         res.data.leads.forEach((l, i) => {
            lines.push(`LEAD #${i+1}: ${l.accountName} (${l.platform})`);
-           lines.push(`Category: ${l.valueCategory}`);
+           lines.push(`Type: ${l.leadType} | Category: ${l.valueCategory}`);
            lines.push(`Reason: ${l.reason}`);
            lines.push(`Action: ${l.suggestedAction}`);
            lines.push(`Context: ${l.context}\n`);
@@ -195,6 +197,22 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang }) => {
     }
   };
 
+  // Sort Leads by Value
+  const sortedLeads = useMemo(() => {
+    if (!result || result.mode !== 'LeadMining') return [];
+    
+    const priority = {
+        'High Value User': 0,
+        'Potential Partner': 1,
+        'Medium Value User': 2,
+        'Low Value User': 3
+    };
+
+    return [...result.data.leads].sort((a, b) => {
+        return (priority[a.valueCategory] ?? 4) - (priority[b.valueCategory] ?? 4);
+    });
+  }, [result]);
+
   const renderResults = () => {
     if (!result) return null;
 
@@ -225,10 +243,11 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang }) => {
           <>
           {exportButtons}
           <div className="grid grid-cols-1 gap-4">
-            {result.data.leads.map((lead, idx) => {
+            {sortedLeads.map((lead, idx) => {
               const strat = strategies[idx];
               const isExpanded = expandedLeads[idx];
               const isLoadingStrat = strategyLoading[idx];
+              const isAdded = crmLeads.includes(lead.accountName);
 
               return (
                 <div key={idx} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
@@ -245,20 +264,49 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang }) => {
                      <div className="flex-grow w-full">
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                            <div>
-                              <h4 className="font-bold text-slate-900 flex items-center gap-2">
-                                {lead.accountName} 
-                                <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{lead.platform}</span>
-                              </h4>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                  <h4 className="font-bold text-slate-900 text-lg">
+                                    {lead.accountName} 
+                                  </h4>
+                                  <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{lead.platform}</span>
+                                  
+                                  {/* Lead Type Badge */}
+                                  <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${
+                                      lead.leadType === 'Factory' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                      lead.leadType === 'KOL' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                      'bg-green-50 text-green-700 border-green-200'
+                                  }`}>
+                                      {lead.leadType === 'Factory' ? <Factory size={10} /> : lead.leadType === 'KOL' ? <Smartphone size={10} /> : <User size={10} />}
+                                      {lead.leadType}
+                                  </span>
+                              </div>
                               <p className="text-sm text-slate-600 mt-1 line-clamp-2 italic">"{lead.context}"</p>
                            </div>
-                           <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${
-                              lead.valueCategory === 'High Value User' ? 'bg-red-50 text-red-700 border border-red-100' :
-                              lead.valueCategory === 'Potential Partner' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                              lead.valueCategory === 'Medium Value User' ? 'bg-orange-50 text-orange-700 border border-orange-100' :
-                              'bg-slate-50 text-slate-700 border border-slate-100'
-                           }`}>
-                              {lead.valueCategory}
-                           </span>
+                           
+                           <div className="flex gap-2 items-center">
+                               <span className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${
+                                  lead.valueCategory === 'High Value User' ? 'bg-red-50 text-red-700 border border-red-100' :
+                                  lead.valueCategory === 'Potential Partner' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                                  lead.valueCategory === 'Medium Value User' ? 'bg-orange-50 text-orange-700 border border-orange-100' :
+                                  'bg-slate-50 text-slate-700 border border-slate-100'
+                               }`}>
+                                  {lead.valueCategory}
+                               </span>
+                               
+                               {/* Add to CRM Button */}
+                               <button 
+                                 onClick={() => !isAdded && onAddToCRM(lead)}
+                                 disabled={isAdded}
+                                 className={`p-1.5 rounded-lg border transition-colors ${
+                                     isAdded 
+                                     ? 'bg-green-100 border-green-200 text-green-700 cursor-default' 
+                                     : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300'
+                                 }`}
+                                 title={isAdded ? t.crm.added : t.analysis.results.addToCRM}
+                               >
+                                   {isAdded ? <Check size={16} /> : <UserPlus size={16} />}
+                               </button>
+                           </div>
                         </div>
           
                         <div className="mt-4 flex flex-col sm:flex-row gap-2 text-sm w-full">

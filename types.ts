@@ -99,10 +99,18 @@ export interface IdentityAnalysisItem {
 export interface MinedLead {
   platform: string;
   accountName: string;
+  leadType: 'Factory' | 'User' | 'KOL'; // Specific classification
   valueCategory: 'High Value User' | 'Medium Value User' | 'Low Value User' | 'Potential Partner';
   reason: string; // Why they are high value
   suggestedAction: string; // e.g. "Direct Message product link"
   context: string; // Brief snippet of what they said
+}
+
+export interface CRMLead extends MinedLead {
+  id: string;
+  status: 'New' | 'Contacted' | 'Qualified' | 'Lost';
+  addedAt: string;
+  notes: string;
 }
 
 export interface LeadMiningResult {

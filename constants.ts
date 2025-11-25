@@ -1,5 +1,5 @@
 
-import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target } from 'lucide-react';
+import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
@@ -18,6 +18,13 @@ export const ANALYSIS_MODES: Record<string, { label: string; icon: LucideIcon; c
   'Competitors': { label: 'Competitor & Trends', icon: TrendingUp, color: 'text-purple-600' },
   'Sentiment': { label: 'Sentiment Analysis', icon: BarChart, color: 'text-orange-600' },
   'Comments': { label: 'Comment Insights', icon: MessageCircle, color: 'text-pink-600' },
+};
+
+export const CRM_STATUSES = {
+  'New': { label: 'New', color: 'bg-blue-100 text-blue-800' },
+  'Contacted': { label: 'Contacted', color: 'bg-yellow-100 text-yellow-800' },
+  'Qualified': { label: 'Qualified', color: 'bg-green-100 text-green-800' },
+  'Lost': { label: 'Lost', color: 'bg-slate-100 text-slate-500' },
 };
 
 export const TRANSLATIONS = {
@@ -69,7 +76,17 @@ export const TRANSLATIONS = {
     },
     nav: {
       leadScout: "Lead Scout",
-      marketIntel: "Market Intelligence"
+      marketIntel: "Market Intelligence",
+      crm: "CRM Pipeline"
+    },
+    crm: {
+      title: "CRM Lead Management",
+      empty: "No leads saved yet. Analyze market data and add leads here.",
+      status: "Status",
+      notes: "Notes",
+      save: "Save",
+      delete: "Delete",
+      added: "Added to CRM"
     },
     analysis: {
       title: "Market Intelligence Analyzer",
@@ -126,7 +143,9 @@ export const TRANSLATIONS = {
         friendly: "Friendly / Resonance",
         professional: "Professional / Value",
         concise: "Concise / Private Domain Hook",
-        privateDomain: "Private Domain Tip"
+        privateDomain: "Private Domain Tip",
+        leadType: "Category",
+        addToCRM: "Add to CRM"
       }
     }
   },
@@ -178,7 +197,17 @@ export const TRANSLATIONS = {
     },
     nav: {
       leadScout: "客源搜寻 (Lead Scout)",
-      marketIntel: "市场情报 (Market Intelligence)"
+      marketIntel: "市场情报 (Market Intelligence)",
+      crm: "CRM 客户管理"
+    },
+    crm: {
+      title: "CRM 客户管理看板",
+      empty: "暂无客户。请在市场情报中分析并添加客户。",
+      status: "跟进状态",
+      notes: "备注",
+      save: "保存",
+      delete: "删除",
+      added: "已添加"
     },
     analysis: {
       title: "市场情报分析器",
@@ -235,7 +264,9 @@ export const TRANSLATIONS = {
         friendly: "亲切共鸣型 (适合评论区)",
         professional: "专业价值型 (适合私信)",
         concise: "私域引流钩子 (适合转化)",
-        privateDomain: "私域转化公式建议"
+        privateDomain: "私域转化公式建议",
+        leadType: "客户归类",
+        addToCRM: "添加至 CRM"
       }
     }
   }
