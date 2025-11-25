@@ -14,7 +14,7 @@ interface MarketAnalyzerProps {
 export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM, crmLeads }) => {
   const [text, setText] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  const [mode, setMode] = useState<AnalysisMode>('Classification');
+  const [mode, setMode] = useState<AnalysisMode>('LeadMining'); // Default to Value Assessment
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -28,6 +28,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
   const [strategyLoading, setStrategyLoading] = useState<Record<number, boolean>>({});
 
   const t = TRANSLATIONS[lang];
+  const r = t.analysis.results; // Shortcut for results translations
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -51,15 +52,29 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
 
     setParsing(true);
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
         try {
             const data = e.target?.result;
-            // Access global XLSX from SheetJS CDN
-            const XLSX = (window as any).XLSX;
+            
+            // Access the global XLSX variable loaded via index.html script tag
+            // We use a small delay retry if it's not immediately available
+            let XLSX = (window as any).XLSX;
             if (!XLSX) {
-                setError("Excel parser library not loaded. Please ensure internet connection.");
-                setParsing(false);
-                return;
+                // Try waiting 500ms in case the script is slow to init
+                await new Promise(resolve => setTimeout(resolve, 500));
+                XLSX = (window as any).XLSX;
+            }
+
+            if (!XLSX) {
+                // Try dynamic import as fallback
+                try {
+                     const xlsxModule = await import('xlsx');
+                     XLSX = xlsxModule;
+                } catch (importErr) {
+                     setError("Excel parser library not loaded. Please ensure internet connection.");
+                     setParsing(false);
+                     return;
+                }
             }
 
             const workbook = XLSX.read(data, { type: 'array' });
@@ -72,31 +87,94 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                  return;
             }
 
-            // Row 0 is header
             const headers = (jsonData[0] as any[]).map(h => String(h).trim());
             
-            // Heuristic column matching for Content, User, Date, Location
-            // Supports both Chinese (from screenshot) and English
-            let contentIdx = -1, userIdx = -1, dateIdx = -1, locIdx = -1;
+            let contentIdx = -1, userIdx = -1, idIdx = -1, dateIdx = -1, locIdx = -1;
             
+            // Helper to check for generic terms
+            const has = (str: string, terms: string[]) => terms.some(t => str.toLowerCase().includes(t));
+            // Helper to validate text is NOT a URL
+            const isUrl = (s: string) => /^(http|https|www)/i.test(s);
+
             headers.forEach((h: string, i: number) => {
-                const header = h.toLowerCase();
-                if (header.includes('内容') || header.includes('content') || header.includes('comment')) contentIdx = i;
-                if (header.includes('评论人') || header.includes('user') || header.includes('昵称') || header.includes('author')) userIdx = i;
-                if (header.includes('时间') || header.includes('date') || header.includes('time')) dateIdx = i;
-                if (header.includes('地区') || header.includes('location') || header.includes('area') || header.includes('region')) locIdx = i;
+                const header = h.trim();
+                const lower = header.toLowerCase();
+
+                // 1. Content
+                if (contentIdx === -1 && (header === '评论内容' || header === 'Content' || (!lower.includes('id') && has(lower, ['内容','content','comment'])))) {
+                    contentIdx = i;
+                }
+
+                // 2. User Name (Strict Mode)
+                // Exclude columns that are definitely IDs or Links
+                const isLink = has(lower, ['url','link','链接','主页','作品']);
+                const isId = has(lower, ['id','uid','号','code']);
+                
+                if (userIdx === -1 && !isLink && !isId) {
+                    if (has(lower, ['评论人','昵称','nickname','name'])) {
+                        userIdx = i;
+                    }
+                }
+
+                // 3. User ID
+                if (idIdx === -1 && !isLink) {
+                     if (has(lower, ['抖音号','id','uid','code'])) {
+                         idIdx = i;
+                     }
+                }
+
+                if (dateIdx === -1 && has(lower, ['时间','date'])) dateIdx = i;
+                if (locIdx === -1 && has(lower, ['地区','location'])) locIdx = i;
             });
 
+            // Fallback for Standard Douyin Export if headers are weird or missing
+            // Standard: Content(0), Name(1), ID(2), Date(3)...
+            if (contentIdx === 0 && userIdx === -1 && headers.length > 1) {
+                 userIdx = 1;
+            }
+            if (contentIdx === 0 && idIdx === -1 && headers.length > 2) {
+                 // Check if col 2 looks like an ID
+                 idIdx = 2;
+            }
+
             const parsedLines: string[] = [];
-            
-            // Limit to first 300 rows to avoid token overflow, start from row 1 (skip header)
+            // Slice rows to avoid huge prompt
             const dataRows = jsonData.slice(1, 301); 
 
             dataRows.forEach((row: any) => {
-                // Ensure we have at least content
                 if (contentIdx > -1 && row[contentIdx]) {
                     let line = `Content: "${row[contentIdx]}"`;
-                    if (userIdx > -1 && row[userIdx]) line += ` | User: ${row[userIdx]}`;
+                    
+                    let userName = "";
+                    let userId = "";
+
+                    // Extract Name
+                    if (userIdx > -1 && row[userIdx] !== undefined) {
+                        const rawName = String(row[userIdx]).trim();
+                        // Strict check: Name cannot be a URL
+                        if (rawName && !isUrl(rawName)) {
+                             userName = rawName;
+                        }
+                    }
+
+                    // Extract ID
+                    if (idIdx > -1 && row[idIdx] !== undefined) {
+                         const rawId = String(row[idIdx]).trim();
+                         // Strict check: ID cannot be a URL
+                         if (rawId && !isUrl(rawId)) {
+                             userId = rawId;
+                         }
+                    }
+
+                    // Construct User String
+                    let userInfo = userName;
+                    if (userId) {
+                         userInfo = userInfo ? `${userInfo} (ID: ${userId})` : `ID: ${userId}`;
+                    } else if (userName) {
+                         userInfo = userName; 
+                    }
+
+                    if (userInfo) line += ` | User: ${userInfo}`;
                     if (dateIdx > -1 && row[dateIdx]) line += ` | Date: ${row[dateIdx]}`;
                     if (locIdx > -1 && row[locIdx]) line += ` | Loc: ${row[locIdx]}`;
                     parsedLines.push(line);
@@ -106,8 +184,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
             if (parsedLines.length > 0) {
                 const newText = parsedLines.join('\n');
                 setText(prev => prev ? prev + "\n\n--- IMPORTED DATA ---\n" + newText : newText);
-                // Switch mode to Comments or LeadMining automatically if suitable
-                if (mode === 'Classification') setMode('Comments');
+                if (mode === 'Classification' || mode === 'Identity') setMode('LeadMining');
             } else {
                 setError("Could not identify 'Content' (评论内容) column. Please check file headers.");
             }
@@ -177,6 +254,32 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
     }
   };
 
+  const handleExportStrategy = (lead: MinedLead, strat: StrategicOutreachResult) => {
+    const lines: string[] = [];
+    lines.push(`${r.strategyTitle} - ${lead.accountName}`);
+    lines.push(`${r.platform}: ${lead.platform} | ${r.valueCategory}: ${lead.valueCategory}`);
+    lines.push(`Context: "${lead.context}"`);
+    lines.push('----------------------------------------\n');
+
+    if (strat.diagnosis) {
+        lines.push(`${r.diagnosis}: ${strat.diagnosis.problemType}`);
+        lines.push(`${r.recommendation}: ${strat.diagnosis.recommendedProduct}`);
+        lines.push(`${r.advice}:`);
+        strat.diagnosis.advice.forEach(a => lines.push(`- ${a}`));
+        lines.push('\n');
+    }
+
+    lines.push(`${r.scripts}:`);
+    lines.push(`[${r.friendly}]: ${strat.scripts.friendly}`);
+    lines.push(`[${r.professional}]: ${strat.scripts.professional}`);
+    lines.push(`[${r.concise}]: ${strat.scripts.concise}`);
+    lines.push('\n');
+    lines.push(`${r.privateDomain}: ${strat.privateDomainTip}`);
+
+    const content = lines.join('\n');
+    downloadFile(content, `Strategy_${lead.accountName}.txt`, 'txt');
+  };
+
   const generateCSV = (res: AnalysisResult): string => {
     let headers: string[] = [];
     let rows: string[][] = [];
@@ -189,40 +292,40 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
 
     switch (res.mode) {
       case 'LeadMining':
-        headers = ['Platform', 'Account Name', 'Type', 'Value Category', 'Reason', 'Suggested Action', 'Context'];
+        headers = [r.platform, r.account, r.type, r.valueCategory, r.reason, r.action, 'Context'];
         rows = res.data.leads.map(l => [l.platform, l.accountName, l.leadType, l.valueCategory, l.reason, l.suggestedAction, l.context]);
         break;
       case 'Identity':
-        headers = ['Platform', 'Name', 'Identity', 'Description'];
+        headers = [r.platform, r.account, r.identity, r.desc];
         rows = res.data.map(i => [i.platform, i.name, i.identity, i.description]);
         break;
       case 'Classification':
-        headers = ['Platform', 'Account Name', 'Type', 'Core Business', 'Features', 'Contact Clues'];
+        headers = [r.platform, r.account, r.type, r.business, r.features, r.contact];
         rows = res.data.map(i => [i.platform, i.accountName, i.type, i.coreBusiness, i.features, i.contactClues]);
         break;
       case 'Competitors':
-        headers = ['Brand', 'Pros', 'Cons', 'Target Audience'];
+        headers = [r.competitor, r.pros, r.cons, r.target];
         rows = res.data.competitors.map(c => [c.brand, c.pros, c.cons, c.targetAudience]);
         break;
       case 'Needs':
         headers = ['Category', 'Item', 'Detail/Percentage'];
-        res.data.coreNeeds.forEach(i => rows.push(['Core Need', i.need, i.example]));
-        res.data.painPoints.forEach(i => rows.push(['Pain Point', i.point, i.example]));
-        res.data.preferences.forEach(i => rows.push(['Preference', i.preference, i.example]));
+        res.data.coreNeeds.forEach(i => rows.push([r.coreNeeds, i.need, i.example]));
+        res.data.painPoints.forEach(i => rows.push([r.painPoints, i.point, i.example]));
+        res.data.preferences.forEach(i => rows.push([r.preferences, i.preference, i.example]));
         break;
       case 'Comments':
         headers = ['Category', 'Content'];
-        res.data.userPersonas.forEach(p => rows.push(['User Persona', `${p.profile} - ${p.characteristics}`]));
-        res.data.commonQuestions.forEach(q => rows.push(['Question', q]));
-        res.data.purchaseMotivations.forEach(m => rows.push(['Motivation', m]));
-        res.data.concerns.forEach(c => rows.push(['Concern', c]));
+        res.data.userPersonas.forEach(p => rows.push([r.userPersonas, `${p.profile} - ${p.characteristics}`]));
+        res.data.commonQuestions.forEach(q => rows.push([r.commonQuestions, q]));
+        res.data.purchaseMotivations.forEach(m => rows.push([r.purchaseMotivations, m]));
+        res.data.concerns.forEach(c => rows.push([r.concerns, c]));
         break;
       case 'Sentiment':
         headers = ['Metric', 'Value'];
-        rows.push(['Positive Sentiment', `${res.data.sentimentBreakdown.positive}%`]);
-        rows.push(['Neutral Sentiment', `${res.data.sentimentBreakdown.neutral}%`]);
-        rows.push(['Negative Sentiment', `${res.data.sentimentBreakdown.negative}%`]);
-        res.data.topKeywords.forEach(k => rows.push(['Keyword', `${k.keyword} (${k.count})`]));
+        rows.push(['Positive', `${res.data.sentimentBreakdown.positive}%`]);
+        rows.push(['Neutral', `${res.data.sentimentBreakdown.neutral}%`]);
+        rows.push(['Negative', `${res.data.sentimentBreakdown.negative}%`]);
+        res.data.topKeywords.forEach(k => rows.push([r.keywords, `${k.keyword} (${k.count})`]));
         break;
     }
 
@@ -231,7 +334,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
 
   const generateTextReport = (res: AnalysisResult): string => {
     let lines: string[] = [];
-    lines.push(`MARKET INTELLIGENCE REPORT - ${res.mode.toUpperCase()}`);
+    lines.push(`${r.reportTitle} - ${t.analysis.modes[res.mode]}`);
     lines.push(`Generated: ${new Date().toLocaleString()}`);
     lines.push('----------------------------------------\n');
 
@@ -251,11 +354,11 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
         });
         break;
       case 'Needs':
-        lines.push('CORE NEEDS:');
+        lines.push(`${r.coreNeeds}:`);
         res.data.coreNeeds.forEach(i => lines.push(`- ${i.need}: ${i.example}`));
-        lines.push('\nPAIN POINTS:');
+        lines.push(`\n${r.painPoints}:`);
         res.data.painPoints.forEach(i => lines.push(`- ${i.point}: ${i.example}`));
-        lines.push('\nPREFERENCES:');
+        lines.push(`\n${r.preferences}:`);
         res.data.preferences.forEach(i => lines.push(`- ${i.preference}: ${i.example}`));
         break;
       default:
@@ -294,8 +397,6 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
 
   const renderResults = () => {
     if (!result) return null;
-
-    const r = t.analysis.results;
 
     const exportButtons = (
         <div className="flex gap-2 mb-4 justify-end">
@@ -417,6 +518,16 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                         {/* Expanded Strategy Panel */}
                         {isExpanded && strat && (
                             <div className="mt-4 bg-slate-50 rounded-lg p-4 border border-slate-200 animate-in fade-in slide-in-from-top-2">
+                                {/* Strategy Header with Export */}
+                                <div className="flex justify-end mb-2">
+                                    <button 
+                                        onClick={() => handleExportStrategy(lead, strat)}
+                                        className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-2 py-1 rounded hover:bg-indigo-50 transition-colors"
+                                    >
+                                        <Download size={12} /> {r.exportStrategy}
+                                    </button>
+                                </div>
+
                                 {/* Diagnosis Section (Only for Users) */}
                                 {strat.diagnosis && (
                                     <div className="mb-4 bg-white p-3 rounded border border-blue-100">
@@ -871,12 +982,12 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                 {/* Right: Actions & Tips */}
                 <div className="lg:col-span-1 flex flex-col justify-between">
                     <div className="bg-indigo-50 rounded-xl p-5 border border-indigo-100 mb-4 lg:mb-0">
-                        <h4 className="text-indigo-800 font-bold text-sm mb-2 flex items-center"><ImageIcon size={16} className="mr-2"/> Pro Tip</h4>
+                        <h4 className="text-indigo-800 font-bold text-sm mb-2 flex items-center"><ImageIcon size={16} className="mr-2"/> {t.analysis.proTip.title}</h4>
                         <p className="text-xs text-indigo-700 leading-relaxed mb-2">
-                            You can upload screenshots of WeChat conversations, Xiaohongshu posts, or Douyin comments.
+                            {t.analysis.proTip.desc1}
                         </p>
                         <p className="text-xs text-indigo-700 leading-relaxed">
-                            For bulk analysis, use the <strong>Import Excel/CSV</strong> button to upload comment exports from data platforms.
+                            {t.analysis.proTip.desc2}
                         </p>
                     </div>
                     

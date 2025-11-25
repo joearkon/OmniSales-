@@ -93,7 +93,7 @@ export interface IdentityAnalysisItem {
   platform: string;
   name: string;
   identity: 'User' | 'Brand' | 'Factory' | 'Practitioner'; 
-  description: string; // Need or Business Scope
+  description: string; // Need or Business scope
 }
 
 export interface MinedLead {
@@ -111,6 +111,7 @@ export interface CRMLead extends MinedLead {
   status: 'New' | 'Contacted' | 'Qualified' | 'Lost';
   addedAt: string;
   notes: string;
+  tags: string[];
 }
 
 export interface LeadMiningResult {

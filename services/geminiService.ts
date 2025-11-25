@@ -1,36 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Lead, OutreachScript, Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult } from "../types";
-
-// Schema for structured lead extraction (existing)
-const leadSchema: Schema = {
-  type: Type.ARRAY,
-  items: {
-    type: Type.OBJECT,
-    properties: {
-      companyName: { type: Type.STRING },
-      type: { type: Type.STRING, enum: ['B2B', 'B2C', 'Distributor', 'Brand', 'Social', 'Exhibition'] },
-      description: { type: Type.STRING },
-      website: { type: Type.STRING },
-      location: { type: Type.STRING },
-      contactInfo: {
-        type: Type.OBJECT,
-        properties: {
-          email: { type: Type.STRING },
-          phone: { type: Type.STRING },
-          wechat: { type: Type.STRING, description: "WeChat ID or Public Account Name" },
-          social: { type: Type.STRING, description: "Social media profile link (Douyin, Red, etc)" },
-        }
-      },
-      potentialNeeds: {
-        type: Type.ARRAY,
-        items: { type: Type.STRING }
-      },
-      confidenceScore: { type: Type.INTEGER, description: "Confidence 0-100 that this is a good match" }
-    },
-    required: ['companyName', 'type', 'description']
-  }
-};
+import { Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult } from "../types";
 
 // Schemas for Market Analysis
 const accountAnalysisSchema: Schema = {
@@ -199,142 +169,6 @@ const strategicOutreachSchema: Schema = {
   }
 };
 
-
-export const searchLeads = async (query: string, targetType: string, lang: Language): Promise<Lead[]> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please ensure process.env.API_KEY is set.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
-  const modelId = "gemini-2.5-flash"; 
-  
-  // Adjust prompt based on language and target region
-  const langInstruction = lang === 'zh' 
-    ? "Respond in Simplified Chinese. Focus on the Chinese market (Mainland, HK, Taiwan) and Asian markets. Prioritize finding WeChat IDs (微信号), Mobile Numbers, and official Chinese sources (like 1688, Qichacha, Baidu listings indexed by Google)." 
-    : "Respond in English.";
-
-  let searchContext = "";
-  
-  if (targetType === 'Social') {
-    searchContext = `
-      Focus specifically on finding influencers (KOL/KOC), MCN agencies, or brands active on social media platforms like Xiaohongshu (RedNote), Douyin (TikTok), and WeChat Official Accounts. 
-      Look for "Business Cooperation" contacts, "WeChat IDs", or profile descriptions that indicate they sell intimate products or are looking for suppliers.
-      Keywords to implicitly use: "site:xiaohongshu.com", "site:douyin.com", "WeChat Public Account", "商务合作", "supplier needed".
-    `;
-  } else if (targetType === 'Exhibition') {
-    searchContext = `
-      Focus on finding companies that have participated in recent industry trade shows and exhibitions (e.g., Canton Fair, Shanghai International Adult Products Exhibition (API), Hong Kong AFE, CES Asia).
-      Look for "Exhibitor Lists" (参展商名录), "Catalogues", or news reports about participating brands.
-      Try to find the specific companies that were listed as exhibitors in 2023, 2024 or 2025.
-    `;
-  } else {
-    searchContext = `
-      Find potential ${targetType} clients/partners for a private label (OEM) manufacturer in the intimate products/adult toy industry. 
-      Focus on companies that might need manufacturing or have distribution channels.
-    `;
-  }
-
-  const refinedQuery = `${searchContext} User Keywords: "${query}". ${langInstruction}`;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: refinedQuery,
-      config: {
-        tools: [{ googleSearch: {} }],
-        // responseMimeType: "application/json" and responseSchema are not allowed with googleSearch
-        systemInstruction: `You are a specialized Sales Intelligence Agent for a factory. 
-        Your goal is to find high-quality business leads based on the user's query using Google Search.
-        
-        1. Search for real companies, social media profiles, or exhibitors suitable for OEM partnerships.
-        2. Extract publicly available information (Name, Website/Profile Link, Location).
-        3. AGGRESSIVELY look for contact info: Phone numbers, Emails, and specifically "WeChat IDs" (微信号) or "Official Accounts" (公众号) if visible in public snippets, expo directories, or social bios.
-        4. Infer their "Potential Needs" based on their business model.
-        5. Return a JSON array matching this structure:
-        [{
-          "companyName": "string",
-          "type": "B2B" | "B2C" | "Distributor" | "Brand" | "Social" | "Exhibition",
-          "description": "string",
-          "website": "string",
-          "location": "string",
-          "contactInfo": { "email": "string", "phone": "string", "wechat": "string", "social": "string" },
-          "potentialNeeds": ["string"],
-          "confidenceScore": number
-        }]
-        6. Ensure the 'description' and 'potentialNeeds' fields are written in ${lang === 'zh' ? 'Simplified Chinese' : 'English'}.
-        `
-      }
-    });
-
-    let jsonText = response.text;
-    if (!jsonText) return [];
-
-    // Strip markdown code blocks if present
-    jsonText = jsonText.trim();
-    if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/^```(json)?\n?/, '').replace(/\n?```$/, '');
-    }
-
-    const rawLeads = JSON.parse(jsonText) as any[];
-    
-    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => ({
-      uri: chunk.web?.uri || '',
-      title: chunk.web?.title || 'Source'
-    })).filter((s: any) => s.uri) || [];
-
-    return rawLeads.map((l, index) => ({
-      ...l,
-      id: `lead-${Date.now()}-${index}`,
-      searchSources: sources.slice(0, 3)
-    }));
-
-  } catch (error) {
-    console.error("Gemini Search Error:", error);
-    throw error; 
-  }
-};
-
-export const generateOutreach = async (lead: Lead, tone: string, channel: string, lang: Language): Promise<OutreachScript> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API Key is missing.");
-  }
-  
-  const ai = new GoogleGenAI({ apiKey });
-  const modelId = "gemini-2.5-flash";
-  
-  const prompt = `
-    I am a sales manager for a private label factory (OEM/ODM) producing intimate products.
-    I want to contact this lead:
-    Company/Profile: ${lead.companyName}
-    Type: ${lead.type}
-    Description: ${lead.description}
-    Needs: ${lead.potentialNeeds?.join(', ')}
-
-    Write a ${tone} message for ${channel} (e.g. Email, WeChat, LinkedIn).
-    The goal is to open a conversation about manufacturing partnerships or supply chain.
-    Keep it professional but persuasive.
-    
-    Language: ${lang === 'zh' ? 'Simplified Chinese (Professional Business Tone)' : 'English'}.
-    
-    Specific Instructions:
-    ${channel === 'WeChat' ? 'Keep it concise and suitable for instant messaging. If they are an influencer/social account, mention how our factory can help them build their own brand (Private Label).' : 'Use a proper subject line if it is email.'}
-    ${lead.type === 'Exhibition' ? 'Mention that we saw they participated in a recent exhibition and we have complementary manufacturing capabilities.' : ''}
-  `;
-
-  const response = await ai.models.generateContent({
-    model: modelId,
-    contents: prompt,
-  });
-
-  return {
-    channel: channel as any,
-    tone: tone as any,
-    content: response.text || "Could not generate script."
-  };
-};
-
 export const analyzeMarketData = async (text: string, images: string[], mode: AnalysisMode, lang: Language): Promise<AnalysisResult> => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) throw new Error("API Key is missing.");
@@ -347,7 +181,7 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
 
   const baseLangInstruction = lang === 'zh' ? "Respond in Simplified Chinese." : "Respond in English.";
   
-  // New section: Visual Identification Rules for accurate platform detection
+  // Visual Identification Rules for accurate platform detection
   const visualRules = `
     **VISUAL IDENTIFICATION RULES (CRITICAL):**
     You are likely processing SCREENSHOTS from different apps. Treat EACH image individually.
@@ -359,10 +193,22 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
     **DO NOT assume all images are from the same platform. Identify the platform for EACH entry based on visual cues.**
   `;
 
+  // Strict Filtering Rules
+  const filteringRules = `
+    **FILTERING RULES (STRICT):**
+    1. **Relevance:** ONLY analyze content related to **Intimate Care** (Private parts health), **Female/Male Reproductive Health**, **Functional/Antibacterial Underwear**, **Postpartum Care**, or **Adult Wellness**.
+       - **EXCLUDE:** General fashion brands (e.g., Calvin Klein underwear without specific care functions), general clothing, pure entertainment, or unrelated topics.
+    2. **Quality/Spam:** IGNORE "Junk Comments" or Spam.
+       - **EXCLUDE:** Emojis only, single words like "666" or "good" without context, unrelated advertisements, or bot spam.
+    
+    If content is irrelevant or spam, DO NOT include it in the output list.
+  `;
+
   switch (mode) {
     case 'LeadMining': // Now acts as "Customer Value Assessment" (Action 3)
       promptInstructions = `
         ${visualRules}
+        ${filteringRules}
         Evaluate the value of the following leads/users based on their content. 
         
         Strictly classify each lead into one of these 'leadType' categories:
@@ -378,7 +224,7 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
         
         For each lead found in the TEXT or IMAGES:
         1. Identify the Platform (Douyin/Xiaohongshu/WeChat) using the visual rules.
-        2. Identify the Account Name.
+        2. Identify the Account Name. **CRITICAL: If a user ID is provided in the input text (e.g. "User: Name (ID: 12345)"), YOU MUST include the ID in the 'accountName' field (e.g. "Name (ID: 12345)") so we can track them.**
         3. Identify the Lead Type (Factory/KOL/User).
         4. Assign the 'valueCategory'.
         5. Explain the 'reason' (e.g., "Clear need + health conscious").
@@ -391,12 +237,14 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
     case 'Identity': // Now acts as "Identify Client Identity" (Action 1)
       promptInstructions = `
         ${visualRules}
+        ${filteringRules}
         Analyze the provided content to identify "Users with intimate care needs" vs "Intimate care practitioners/Brands".
         
         1. Identify each distinct entity (Person or Company) in the text or images.
         2. Classify them into 'User' (End Consumer), 'Brand', 'Factory', or 'Practitioner'.
         3. Extract the Platform (Douyin/Xiaohongshu/WeChat) using visual rules.
-        4. Extract Name (Account Name) and their specific Need (for users) or Business Scope (for businesses).
+        4. Extract Name (Account Name). **CRITICAL: Include User ID if available in text (e.g. "Name (ID: ...)")**.
+        5. Extract their specific Need (for users) or Business Scope (for businesses).
         
         Return a JSON array formatted as a table: Platform, Account Name, Type, Description.
         ${baseLangInstruction}
@@ -405,6 +253,7 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
       break;
     case 'Needs': // Now acts as "Mine User Pain Points" (Action 2)
       promptInstructions = `
+        ${filteringRules}
         Analyze user comments to summarize:
         1. Main Pain Points (e.g. Itchiness, Looseness, Odor) -> include estimated percentage/frequency if possible (e.g. "Itchiness (45%)").
         2. Expected Effects (e.g. Stop itching, Tightening, Improve inflammation) -> include estimated percentage/frequency.
@@ -418,9 +267,10 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
     case 'Classification':
       promptInstructions = `
         ${visualRules}
+        ${filteringRules}
         Analyze the provided content (text and/or images of social media profiles).
         1. Classify each account (Brand, Factory, KOL, Service, etc.).
-        2. Extract key info: Platform (Douyin/Red/WeChat), Account Name, Core Business, Features, Contact Clues.
+        2. Extract key info: Platform (Douyin/Red/WeChat), Account Name (Include ID if available), Core Business, Features, Contact Clues.
         3. Output a JSON array.
         ${baseLangInstruction}
       `;
@@ -428,6 +278,7 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
       break;
     case 'Competitors':
       promptInstructions = `
+        ${filteringRules}
         Analyze the provided content for brand/product comparisons.
         1. List competitors with their Pros, Cons, and Target Audience.
         2. Summarize Market Trends with evidence.
@@ -437,6 +288,7 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
       break;
     case 'Sentiment':
       promptInstructions = `
+        ${filteringRules}
         Perform sentiment analysis on the user reviews/comments provided in text or images.
         1. Calculate percentage of Positive, Neutral, Negative sentiment.
         2. Extract Top 5 keywords with counts.
@@ -447,6 +299,7 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
       break;
     case 'Comments':
       promptInstructions = `
+        ${filteringRules}
         Analyze the provided user comments or discussion threads deep dive.
         1. Identify distinct User Personas (who is commenting? e.g., 'Gift buyers', 'First-time users').
         2. List Common Questions asked by potential buyers.

@@ -1,6 +1,8 @@
 
 import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
+export const APP_VERSION = 'v1.2.0';
+
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
   'B2C': { label: 'Direct Consumer', icon: Users, color: 'bg-green-100 text-green-700' },
@@ -31,66 +33,57 @@ export const TRANSLATIONS = {
   en: {
     navTitle: "OmniSales Intelligence",
     navSubtitle: "Intimate Product Factory Sales Assistant",
-    heroTitle: "Find High-Value OEM/ODM Partners",
-    heroSubtitle: "Leverage AI to scout distributors, private label brands, and e-commerce sellers suitable for our factory capabilities.",
-    searchPlaceholder: "E.g., 'Silicone vibrator brands in Europe', 'Adult toy wholesalers USA'",
-    searchButton: "Find Leads",
-    scouting: "Scouting...",
-    readyToHunt: "Ready to hunt",
-    readyToHuntDesc: "Enter your target keywords above to start generating leads.",
-    found: "Found",
-    partners: "Potential Partners",
-    confidence: "AI Confidence: High",
-    noLeads: "No leads found. Try broadening your search terms.",
-    viewDetails: "View Details & Outreach",
-    match: "Match",
-    website: "Website",
-    companyInfo: "Company Info",
-    aiOutreach: "AI Outreach",
-    about: "About",
-    potentialNeeds: "Potential Needs",
-    publicContact: "Public Contact Data",
-    sources: "Sources",
-    generateScript: "Generate a personalized script to break the ice.",
-    generate: "Generate",
-    analyzing: "Analyzing lead & drafting message...",
-    copySuccess: "Copied!",
-    selectOption: "Select options and click Generate to see the magic.",
-    targetType: {
-        distributor: "Distributors",
-        brand: "Private Label Brands",
-        b2b: "General B2B",
-        b2c: "E-commerce Stores",
-        social: "Social Media / KOL (Douyin/Red)",
-        exhibition: "Trade Shows / Exhibitors"
-    },
-    outreach: {
-        channel: "Channel",
-        tone: "Tone",
-        wechat: "WeChat / IM",
-        email: "Cold Email",
-        phone: "Phone Script",
-        professional: "Professional",
-        friendly: "Casual & Friendly",
-        direct: "Direct & Concise"
-    },
     nav: {
-      leadScout: "Lead Scout",
       marketIntel: "Market Intelligence",
       crm: "CRM Pipeline"
     },
     crm: {
       title: "CRM Lead Management",
+      subtitle: "Manage, filter, and export your lead pipeline.",
       empty: "No leads saved yet. Analyze market data and add leads here.",
       status: "Status",
+      statuses: {
+        new: "New",
+        contacted: "Contacted",
+        qualified: "Qualified",
+        lost: "Lost"
+      },
+      stats: {
+        total: "Total Leads",
+        highPotential: "High Potential",
+        contacted: "Contacted",
+        rate: "Contact Rate"
+      },
+      bulk: {
+        selected: "Selected",
+        delete: "Delete",
+        addTag: "Add Tag",
+        placeholder: "Tag name..."
+      },
       notes: "Notes",
+      emptyNote: "Click to add private notes...",
+      searchPlaceholder: "Search leads, notes, tags...",
+      tags: "Tags",
+      addTag: "Add Tag",
       save: "Save",
       delete: "Delete",
-      added: "Added to CRM"
+      deleteConfirm: "Are you sure you want to delete {count} leads?",
+      copySuccess: "Lead info copied to clipboard!",
+      added: "Added to CRM",
+      import: "Import Data",
+      exportCSV: "Export CSV",
+      exportJSON: "Export Backup (JSON)",
+      importSuccess: "Successfully imported leads.",
+      importError: "Failed to import file. Please check format."
     },
     analysis: {
       title: "Market Intelligence Analyzer",
       subtitle: "Paste raw text, upload screenshots, or import Excel/CSV comments to extract insights.",
+      proTip: {
+        title: "Pro Tip",
+        desc1: "You can upload screenshots of WeChat conversations, Xiaohongshu posts, or Douyin comments.",
+        desc2: "For bulk analysis, use the Import Excel/CSV button to upload comment exports from data platforms."
+      },
       placeholder: "Paste content here (e.g., account profiles, post comments, article text)...",
       analyzeBtn: "Analyze Data",
       analyzing: "AI is analyzing...",
@@ -148,73 +141,67 @@ export const TRANSLATIONS = {
         concise: "Concise / Private Domain Hook",
         privateDomain: "Private Domain Tip",
         leadType: "Category",
-        addToCRM: "Add to CRM"
+        addToCRM: "Add to CRM",
+        exportStrategy: "Export Strategy",
+        reportTitle: "MARKET INTELLIGENCE REPORT",
+        strategyTitle: "STRATEGIC ACTION PLAN"
       }
     }
   },
   zh: {
     navTitle: "全域销售情报 (OmniSales)",
     navSubtitle: "私密产品工厂销售助手",
-    heroTitle: "寻找高价值 OEM/ODM 合作伙伴",
-    heroSubtitle: "利用 AI 发掘适合我们工厂能力的经销商、贴牌品牌和电商卖家，覆盖亚洲及全球市场。",
-    searchPlaceholder: "例如：'上海成人展参展商名单', '广东情趣内衣工厂代理'",
-    searchButton: "寻找客源",
-    scouting: "正在全网搜寻 (含展会数据)...",
-    readyToHunt: "准备就绪",
-    readyToHuntDesc: "在上方输入关键词开始挖掘潜在客户。",
-    found: "找到",
-    partners: "个潜在合作伙伴",
-    confidence: "AI 置信度：高",
-    noLeads: "未找到线索。请尝试扩大搜索范围。",
-    viewDetails: "查看详情 & 联络",
-    match: "匹配度",
-    website: "官网/主页",
-    companyInfo: "企业信息",
-    aiOutreach: "AI 话术生成",
-    about: "简介",
-    potentialNeeds: "潜在需求",
-    publicContact: "公开联系方式",
-    sources: "信息来源",
-    generateScript: "生成个性化破冰话术。",
-    generate: "生成话术",
-    analyzing: "正在分析客户并撰写...",
-    copySuccess: "已复制!",
-    selectOption: "选择选项并点击生成以查看结果。",
-    targetType: {
-        distributor: "经销商 / 代理商",
-        brand: "贴牌品牌方 (Private Label)",
-        b2b: "一般 B2B 客户",
-        b2c: "电商卖家 / 网店",
-        social: "抖音/小红书/微信 (新媒体)",
-        exhibition: "展会参展商 (广交会/成人展)"
-    },
-    outreach: {
-        channel: "渠道",
-        tone: "语气",
-        wechat: "微信 / 即时通讯",
-        email: "开发邮件",
-        phone: "电话话术",
-        professional: "专业正式",
-        friendly: "亲切友好",
-        direct: "直接高效"
-    },
     nav: {
-      leadScout: "客源搜寻 (Lead Scout)",
       marketIntel: "市场情报 (Market Intelligence)",
       crm: "CRM 客户管理"
     },
     crm: {
       title: "CRM 客户管理看板",
-      empty: "暂无客户。请在市场情报中分析并添加客户。",
+      subtitle: "管理、筛选及导出您的客户漏斗。",
+      empty: "暂无客户。请在市场情报中分析并添加客户。数据已自动保存至本地。",
       status: "跟进状态",
+      statuses: {
+        new: "新客户",
+        contacted: "已跟进",
+        qualified: "意向强烈",
+        lost: "已流失"
+      },
+      stats: {
+        total: "客户总数",
+        highPotential: "高潜客户",
+        contacted: "已跟进",
+        rate: "跟进率"
+      },
+      bulk: {
+        selected: "已选择",
+        delete: "批量删除",
+        addTag: "添加标签",
+        placeholder: "输入标签名..."
+      },
       notes: "备注",
+      emptyNote: "点击添加私密备注...",
+      searchPlaceholder: "搜索客户名、备注、标签...",
+      tags: "客户标签",
+      addTag: "添加标签",
       save: "保存",
       delete: "删除",
-      added: "已添加"
+      deleteConfirm: "确定要删除 {count} 位客户吗？",
+      copySuccess: "客户信息已复制到剪贴板！",
+      added: "已添加",
+      import: "导入数据",
+      exportCSV: "导出 Excel",
+      exportJSON: "导出备份 (JSON)",
+      importSuccess: "成功导入客户数据。",
+      importError: "导入失败，请检查文件格式。"
     },
     analysis: {
       title: "市场情报分析器",
       subtitle: "粘贴文本、上传截图或导入评论 Excel/CSV，自动提取价值信息。",
+      proTip: {
+        title: "使用技巧",
+        desc1: "您可以上传微信聊天记录、小红书笔记或抖音评论的截图。",
+        desc2: "如需批量分析，请使用“导入 Excel/CSV”按钮上传数据平台的评论导出文件。"
+      },
       placeholder: "在此粘贴内容（例如：账号简介列表、帖子评论区内容、文章正文）...",
       analyzeBtn: "开始智能分析",
       analyzing: "AI 正在分析中...",
@@ -272,7 +259,10 @@ export const TRANSLATIONS = {
         concise: "私域引流钩子 (适合转化)",
         privateDomain: "私域转化公式建议",
         leadType: "客户归类",
-        addToCRM: "添加至 CRM"
+        addToCRM: "添加至 CRM",
+        exportStrategy: "导出行动方案",
+        reportTitle: "市场情报分析报告",
+        strategyTitle: "触达行动方案"
       }
     }
   }

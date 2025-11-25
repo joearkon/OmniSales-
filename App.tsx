@@ -1,49 +1,36 @@
 
-import React, { useState } from 'react';
-import { Search, Filter, Rocket, Briefcase, Zap, Languages, AlertTriangle, FileText, PieChart, TrendingUp, BarChart, List } from 'lucide-react';
-import { searchLeads } from './services/geminiService';
-import { Lead, Language, CRMLead, MinedLead } from './types';
-import { LeadCard } from './components/LeadCard';
-import { LeadDetailModal } from './components/LeadDetailModal';
+import React, { useState, useEffect } from 'react';
+import { Zap, Languages } from 'lucide-react';
+import { Language, CRMLead, MinedLead } from './types';
 import { MarketAnalyzer } from './components/MarketAnalyzer';
 import { CRMBoard } from './components/CRMBoard';
-import { TRANSLATIONS } from './constants';
+import { TRANSLATIONS, APP_VERSION } from './constants';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'search' | 'analysis' | 'crm'>('search');
-  const [query, setQuery] = useState('');
-  const [targetType, setTargetType] = useState('Distributor');
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [lang, setLang] = useState<Language>('zh');
-  const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<'analysis' | 'crm'>('analysis');
+  const [lang, setLang] = useState<Language>('zh'); // Default to Chinese
 
-  // CRM State
-  const [crmLeads, setCrmLeads] = useState<CRMLead[]>([]);
+  // CRM State - Initialized from LocalStorage
+  const [crmLeads, setCrmLeads] = useState<CRMLead[]>(() => {
+    try {
+      const saved = localStorage.getItem('crmLeads');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.warn("Failed to load CRM leads from storage", e);
+      return [];
+    }
+  });
+
+  // Save to LocalStorage whenever crmLeads changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('crmLeads', JSON.stringify(crmLeads));
+    } catch (e) {
+      console.warn("Failed to save CRM leads to storage", e);
+    }
+  }, [crmLeads]);
 
   const t = TRANSLATIONS[lang];
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-
-    setLoading(true);
-    setHasSearched(true);
-    setLeads([]); 
-    setError(null);
-
-    try {
-      const results = await searchLeads(query, targetType, lang);
-      setLeads(results);
-    } catch (error: any) {
-      console.error("Search failed", error);
-      setError(error.message || "An error occurred while searching.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggleLang = () => {
     setLang(prev => prev === 'en' ? 'zh' : 'en');
@@ -56,7 +43,8 @@ const App: React.FC = () => {
       id: `crm-${Date.now()}`,
       status: 'New',
       addedAt: new Date().toISOString(),
-      notes: ''
+      notes: '',
+      tags: [] // Initialize tags
     };
     setCrmLeads(prev => [newLead, ...prev]);
   };
@@ -69,19 +57,42 @@ const App: React.FC = () => {
     setCrmLeads(prev => prev.filter(l => l.id !== id));
   };
 
+  const handleImportCRMLeads = (importedLeads: CRMLead[]) => {
+      // Merge strategy: Prevent duplicates by ID or Account Name
+      setCrmLeads(prev => {
+          const existingIds = new Set(prev.map(l => l.id));
+          const existingNames = new Set(prev.map(l => l.accountName));
+          
+          const uniqueImports = importedLeads.filter(l => {
+              if (existingIds.has(l.id)) return false;
+              // Optional: prevent duplicate account names too
+              if (existingNames.has(l.accountName)) return false;
+              return true;
+          });
+          
+          return [...uniqueImports, ...prev];
+      });
+      alert(t.crm.importSuccess);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
       {/* Navbar */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('search')}>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('analysis')}>
             <div className="bg-indigo-600 p-2 rounded-lg">
               <Zap className="text-white" size={20} />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 leading-tight">
-                {t.navTitle}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 leading-tight">
+                    {t.navTitle}
+                </span>
+                <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-mono border border-indigo-100">
+                    {APP_VERSION}
+                </span>
+              </div>
               <span className="text-[10px] text-slate-500 hidden sm:block leading-tight">
                 {t.navSubtitle}
               </span>
@@ -90,12 +101,6 @@ const App: React.FC = () => {
           
           <div className="flex items-center gap-4">
              <div className="hidden md:flex bg-slate-100 rounded-lg p-1">
-                <button 
-                  onClick={() => setView('search')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'search' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                >
-                  {t.nav.leadScout}
-                </button>
                 <button 
                   onClick={() => setView('analysis')}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'analysis' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
@@ -124,12 +129,6 @@ const App: React.FC = () => {
       {/* Mobile Tabs */}
       <div className="md:hidden bg-white border-b border-slate-200 px-4 py-2 flex gap-2 overflow-x-auto">
           <button 
-            onClick={() => setView('search')}
-            className={`flex-1 py-2 px-2 rounded-lg text-sm font-medium text-center whitespace-nowrap ${view === 'search' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'}`}
-          >
-            {t.nav.leadScout}
-          </button>
-          <button 
             onClick={() => setView('analysis')}
             className={`flex-1 py-2 px-2 rounded-lg text-sm font-medium text-center whitespace-nowrap ${view === 'analysis' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'}`}
           >
@@ -151,167 +150,16 @@ const App: React.FC = () => {
               crmLeads={crmLeads.map(l => l.accountName)} 
             />
         </div>
-      ) : view === 'crm' ? (
+      ) : (
         <div className="flex-grow py-10">
            <CRMBoard 
               leads={crmLeads} 
               onUpdate={updateCRMLead} 
               onDelete={deleteCRMLead} 
+              onImport={handleImportCRMLeads}
               lang={lang} 
            />
         </div>
-      ) : (
-        <>
-          {/* Hero / Search Section */}
-          <div className="bg-white border-b border-slate-200 pb-12 pt-10 px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
-                {t.heroTitle}
-              </h1>
-              <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
-                {t.heroSubtitle}
-              </p>
-
-              <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
-                <div className="flex flex-col sm:flex-row gap-3 p-2 bg-white shadow-xl shadow-indigo-100/50 rounded-2xl border border-slate-100">
-                  <div className="relative flex-grow">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                    <input
-                      type="text"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder={t.searchPlaceholder}
-                      className="w-full pl-11 pr-4 py-4 bg-transparent outline-none text-slate-800 placeholder-slate-400"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center gap-2 sm:border-l sm:border-slate-100 sm:pl-3">
-                    <Filter size={18} className="text-slate-400 hidden sm:block" />
-                    <select 
-                      value={targetType}
-                      onChange={(e) => setTargetType(e.target.value)}
-                      className="py-2 pl-2 pr-8 bg-slate-50 border border-transparent hover:border-slate-200 rounded-lg text-sm text-slate-700 outline-none cursor-pointer w-full sm:w-auto"
-                    >
-                      <option value="Distributor">{t.targetType.distributor}</option>
-                      <option value="Brand">{t.targetType.brand}</option>
-                      <option value="Exhibition">{t.targetType.exhibition}</option>
-                      <option value="Social">{t.targetType.social}</option>
-                      <option value="B2B">{t.targetType.b2b}</option>
-                      <option value="B2C">{t.targetType.b2c}</option>
-                    </select>
-                  </div>
-
-                  <button 
-                    type="submit"
-                    disabled={loading}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-semibold transition-all flex items-center justify-center sm:w-auto w-full disabled:opacity-70 disabled:cursor-not-allowed shrink-0"
-                  >
-                    {loading ? (
-                      <span className="flex items-center"><span className="animate-spin mr-2">⟳</span> {t.scouting}</span>
-                    ) : (
-                      <span className="flex items-center whitespace-nowrap">{t.searchButton} <Rocket size={18} className="ml-2" /></span>
-                    )}
-                  </button>
-                </div>
-              </form>
-              
-              <div className="mt-4 text-xs text-slate-400">
-                 Powered by Google Search Grounding • Public Business Data Only
-              </div>
-            </div>
-          </div>
-
-          {/* Results Section */}
-          <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
-            {error ? (
-              <div className="max-w-lg mx-auto bg-red-50 border border-red-200 rounded-xl p-6 text-center shadow-sm">
-                <AlertTriangle className="mx-auto text-red-500 mb-4" size={48} />
-                <h3 className="text-lg font-bold text-red-800 mb-2">{lang === 'zh' ? 'API 密钥缺失或错误' : 'API Key Missing or Invalid'}</h3>
-                <p className="text-red-700 text-sm mb-4 font-medium">
-                  {lang === 'zh' 
-                    ? '系统无法从 process.env.API_KEY 获取到有效的 Google Gemini API 密钥。' 
-                    : 'System could not retrieve a valid Google Gemini API Key from process.env.API_KEY.'}
-                </p>
-                
-                <div className="text-left bg-white/60 p-4 rounded-lg border border-red-100 text-xs text-red-800">
-                    <p className="font-bold mb-2 text-sm">{lang === 'zh' ? '如果您正在部署到 EdgeOne / Vercel：' : 'If deploying to EdgeOne / Vercel:'}</p>
-                    <ul className="list-disc list-inside space-y-1.5">
-                        <li>
-                            {lang === 'zh' ? '请进入项目的' : 'Go to project'} <strong>Settings (设置)</strong> {'>'} <strong>Environment Variables (环境变量)</strong>
-                        </li>
-                        <li>
-                            {lang === 'zh' ? '添加变量名：' : 'Add Key:'} <code className="bg-red-100 px-1 rounded">API_KEY</code>
-                        </li>
-                        <li>
-                            {lang === 'zh' ? '变量值：粘贴您的' : 'Value: Paste your'} <strong>Google Gemini API Key</strong>
-                        </li>
-                        <li>
-                            {lang === 'zh' ? '保存并' : 'Save and'} <strong>Redeploy (重新部署)</strong>
-                        </li>
-                    </ul>
-                </div>
-              </div>
-            ) : !hasSearched ? (
-              // Empty State
-              <div className="text-center py-20 opacity-60">
-                <Briefcase className="mx-auto text-slate-300 mb-4" size={64} />
-                <h3 className="text-xl font-medium text-slate-600">{t.readyToHunt}</h3>
-                <p className="text-slate-500 mt-2">{t.readyToHuntDesc}</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
-                  <h2 className="text-xl font-bold text-slate-800">
-                    {t.found} {leads.length} {t.partners}
-                  </h2>
-                  {leads.length > 0 && (
-                    <span className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-100">
-                      {t.confidence}
-                    </span>
-                  )}
-                </div>
-
-                {loading ? (
-                  // Loading Skeleton
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="bg-white h-64 rounded-xl shadow-sm border border-slate-100 animate-pulse p-5">
-                        <div className="h-6 bg-slate-200 rounded w-2/3 mb-4"></div>
-                        <div className="h-4 bg-slate-200 rounded w-full mb-2"></div>
-                        <div className="h-4 bg-slate-200 rounded w-5/6 mb-6"></div>
-                        <div className="h-10 bg-slate-200 rounded w-full mt-auto"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : leads.length === 0 ? (
-                  <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300 shadow-sm">
-                    <p className="text-slate-500">{t.noLeads}</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
-                    {leads.map((lead) => (
-                      <LeadCard 
-                        key={lead.id} 
-                        lead={lead} 
-                        onAnalyze={setSelectedLead} 
-                        lang={lang}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </main>
-
-          {/* Modals */}
-          {selectedLead && (
-            <LeadDetailModal 
-              lead={selectedLead} 
-              onClose={() => setSelectedLead(null)} 
-              lang={lang}
-            />
-          )}
-        </>
       )}
     </div>
   );
