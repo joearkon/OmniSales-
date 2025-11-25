@@ -1,4 +1,5 @@
-import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket } from 'lucide-react';
+
+import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target } from 'lucide-react';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
@@ -7,6 +8,16 @@ export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color
   'Brand': { label: 'Private Label Brand', icon: ShoppingBag, color: 'bg-orange-100 text-orange-700' },
   'Social': { label: 'Social / KOL', icon: Smartphone, color: 'bg-rose-100 text-rose-700' },
   'Exhibition': { label: 'Exhibition / Trade Show', icon: Ticket, color: 'bg-teal-100 text-teal-700' },
+};
+
+export const ANALYSIS_MODES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
+  'LeadMining': { label: 'Value Assessment (High Quality Clients)', icon: Target, color: 'text-red-600' },
+  'Identity': { label: 'Identify Identity (User vs Biz)', icon: UserCheck, color: 'text-indigo-600' },
+  'Needs': { label: 'Mine Needs & Pain Points', icon: PieChart, color: 'text-green-600' },
+  'Classification': { label: 'Account Classification', icon: FileText, color: 'text-blue-600' },
+  'Competitors': { label: 'Competitor & Trends', icon: TrendingUp, color: 'text-purple-600' },
+  'Sentiment': { label: 'Sentiment Analysis', icon: BarChart, color: 'text-orange-600' },
+  'Comments': { label: 'Comment Insights', icon: MessageCircle, color: 'text-pink-600' },
 };
 
 export const TRANSLATIONS = {
@@ -55,6 +66,68 @@ export const TRANSLATIONS = {
         professional: "Professional",
         friendly: "Casual & Friendly",
         direct: "Direct & Concise"
+    },
+    nav: {
+      leadScout: "Lead Scout",
+      marketIntel: "Market Intelligence"
+    },
+    analysis: {
+      title: "Market Intelligence Analyzer",
+      subtitle: "Paste raw text or upload screenshots from Social Media to extract insights.",
+      placeholder: "Paste content here (e.g., account profiles, post comments, article text)...",
+      analyzeBtn: "Analyze Data",
+      analyzing: "AI is analyzing...",
+      uploadTitle: "Upload Screenshots",
+      uploadDesc: "Drag & drop images (JPG, PNG) here, or click to select.",
+      remove: "Remove",
+      exportCSV: "Export to Excel (CSV)",
+      exportTxt: "Export Report (Text)",
+      modes: {
+        LeadMining: "Value Assessment (High Quality Clients)",
+        Identity: "Identity Identification (User vs Biz)",
+        Classification: "Account Classification",
+        Needs: "Mine Needs & Pain Points",
+        Competitors: "Competitors & Trends",
+        Sentiment: "Sentiment Analysis",
+        Comments: "Comment Insights"
+      },
+      results: {
+        platform: "Platform",
+        account: "Account",
+        type: "Type",
+        business: "Core Business",
+        features: "Features",
+        contact: "Contact Clues",
+        coreNeeds: "Core User Needs",
+        painPoints: "Main Pain Points",
+        preferences: "Consumption Preferences",
+        competitor: "Brand",
+        pros: "Pros",
+        cons: "Cons",
+        target: "Target Audience",
+        trends: "Market Trends",
+        sentiment: "Sentiment Breakdown",
+        keywords: "Top Keywords",
+        userPersonas: "User Personas",
+        commonQuestions: "Common Questions",
+        purchaseMotivations: "Purchase Drivers",
+        concerns: "Hesitations / Concerns",
+        identity: "Identity",
+        desc: "Need / Business Description",
+        valueCategory: "Value Category",
+        reason: "Assessment Reason",
+        action: "Suggested Action",
+        genStrategy: "Generate Action Plan",
+        strategyLoading: "Designing Strategy...",
+        diagnosis: "Problem Diagnosis",
+        advice: "Nursing Advice",
+        recommendation: "Recommended Product",
+        scripts: "Outreach Scripts",
+        friendly: "Friendly / Resonance",
+        professional: "Professional / Value",
+        concise: "Concise / Private Domain Hook",
+        privateDomain: "Private Domain Tip"
+      }
     }
   },
   zh: {
@@ -102,6 +175,68 @@ export const TRANSLATIONS = {
         professional: "专业正式",
         friendly: "亲切友好",
         direct: "直接高效"
+    },
+    nav: {
+      leadScout: "客源搜寻 (Lead Scout)",
+      marketIntel: "市场情报 (Market Intelligence)"
+    },
+    analysis: {
+      title: "市场情报分析器",
+      subtitle: "粘贴文本或上传社交媒体截图（微信、小红书、抖音），自动提取价值信息。",
+      placeholder: "在此粘贴内容（例如：账号简介列表、帖子评论区内容、文章正文）...",
+      analyzeBtn: "开始智能分析",
+      analyzing: "AI 正在分析中...",
+      uploadTitle: "上传截图",
+      uploadDesc: "拖放图片 (JPG, PNG) 到此处，或点击选择文件。",
+      remove: "移除",
+      exportCSV: "导出 Excel (CSV)",
+      exportTxt: "导出文本报告 (Text)",
+      modes: {
+        LeadMining: "潜客价值评估 (High Quality Clients)",
+        Identity: "客户身份识别 (Identity Identification)",
+        Classification: "账号类型分类",
+        Needs: "用户痛点与需求挖掘 (Needs Mining)",
+        Competitors: "竞品与趋势分析",
+        Sentiment: "情感倾向分析",
+        Comments: "评论深度分析"
+      },
+      results: {
+        platform: "平台",
+        account: "账号名",
+        type: "类型",
+        business: "核心业务",
+        features: "产品/服务特点",
+        contact: "联系方式线索",
+        coreNeeds: "核心需求 (按频率)",
+        painPoints: "主要痛点 (含占比)",
+        preferences: "消费偏好 (含占比)",
+        competitor: "竞品品牌",
+        pros: "优势",
+        cons: "劣势",
+        target: "目标人群",
+        trends: "市场趋势",
+        sentiment: "情感占比",
+        keywords: "高频关键词",
+        userPersonas: "潜在用户画像",
+        commonQuestions: "高频提问",
+        purchaseMotivations: "购买动机",
+        concerns: "购买顾虑",
+        identity: "身份类型",
+        desc: "需求 / 业务描述",
+        valueCategory: "价值等级",
+        reason: "评估理由",
+        action: "建议动作",
+        genStrategy: "生成触达行动方案",
+        strategyLoading: "正在设计话术...",
+        diagnosis: "问题诊断 (专家形象)",
+        advice: "护理建议",
+        recommendation: "推荐产品类型",
+        scripts: "破冰话术库",
+        friendly: "亲切共鸣型 (适合评论区)",
+        professional: "专业价值型 (适合私信)",
+        concise: "私域引流钩子 (适合转化)",
+        privateDomain: "私域转化公式建议"
+      }
     }
   }
 };
