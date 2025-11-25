@@ -3,7 +3,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import { ANALYSIS_MODES, TRANSLATIONS } from '../constants';
 import { AnalysisMode, Language, AnalysisResult, MinedLead, StrategicOutreachResult } from '../types';
 import { analyzeMarketData, generateStrategicOutreach } from '../services/geminiService';
-import { Sparkles, Loader2, AlertTriangle, Upload, Image as ImageIcon, X, Target, Download, FileText as FileIcon, ChevronDown, ChevronUp, Copy, UserPlus, Check, User, Factory, Smartphone } from 'lucide-react';
+import { Sparkles, Loader2, AlertTriangle, Upload, Image as ImageIcon, X, Target, Download, FileText as FileIcon, ChevronDown, ChevronUp, Copy, UserPlus, Check, User, Factory, Smartphone, FileSpreadsheet } from 'lucide-react';
 
 interface MarketAnalyzerProps {
   lang: Language;
@@ -16,9 +16,11 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
   const [images, setImages] = useState<string[]>([]);
   const [mode, setMode] = useState<AnalysisMode>('Classification');
   const [loading, setLoading] = useState(false);
+  const [parsing, setParsing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   // State for expanded strategies in LeadMining mode
   const [expandedLeads, setExpandedLeads] = useState<Record<number, boolean>>({});
@@ -41,6 +43,83 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
         reader.readAsDataURL(file);
       });
     }
+  };
+
+  const handleSpreadsheetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setParsing(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = e.target?.result;
+            // Access global XLSX from SheetJS CDN
+            const XLSX = (window as any).XLSX;
+            if (!XLSX) {
+                setError("Excel parser library not loaded. Please ensure internet connection.");
+                setParsing(false);
+                return;
+            }
+
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            if (!jsonData || jsonData.length === 0) {
+                 setError("File appears empty.");
+                 return;
+            }
+
+            // Row 0 is header
+            const headers = (jsonData[0] as any[]).map(h => String(h).trim());
+            
+            // Heuristic column matching for Content, User, Date, Location
+            // Supports both Chinese (from screenshot) and English
+            let contentIdx = -1, userIdx = -1, dateIdx = -1, locIdx = -1;
+            
+            headers.forEach((h: string, i: number) => {
+                const header = h.toLowerCase();
+                if (header.includes('内容') || header.includes('content') || header.includes('comment')) contentIdx = i;
+                if (header.includes('评论人') || header.includes('user') || header.includes('昵称') || header.includes('author')) userIdx = i;
+                if (header.includes('时间') || header.includes('date') || header.includes('time')) dateIdx = i;
+                if (header.includes('地区') || header.includes('location') || header.includes('area') || header.includes('region')) locIdx = i;
+            });
+
+            const parsedLines: string[] = [];
+            
+            // Limit to first 300 rows to avoid token overflow, start from row 1 (skip header)
+            const dataRows = jsonData.slice(1, 301); 
+
+            dataRows.forEach((row: any) => {
+                // Ensure we have at least content
+                if (contentIdx > -1 && row[contentIdx]) {
+                    let line = `Content: "${row[contentIdx]}"`;
+                    if (userIdx > -1 && row[userIdx]) line += ` | User: ${row[userIdx]}`;
+                    if (dateIdx > -1 && row[dateIdx]) line += ` | Date: ${row[dateIdx]}`;
+                    if (locIdx > -1 && row[locIdx]) line += ` | Loc: ${row[locIdx]}`;
+                    parsedLines.push(line);
+                }
+            });
+
+            if (parsedLines.length > 0) {
+                const newText = parsedLines.join('\n');
+                setText(prev => prev ? prev + "\n\n--- IMPORTED DATA ---\n" + newText : newText);
+                // Switch mode to Comments or LeadMining automatically if suitable
+                if (mode === 'Classification') setMode('Comments');
+            } else {
+                setError("Could not identify 'Content' (评论内容) column. Please check file headers.");
+            }
+        } catch (err) {
+            console.error("Parse Error:", err);
+            setError("Failed to parse file. Ensure it is a valid Excel or CSV.");
+        } finally {
+            setParsing(false);
+            if (csvInputRef.current) csvInputRef.current.value = '';
+        }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const removeImage = (index: number) => {
@@ -723,50 +802,81 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                         className="w-full h-40 p-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm text-slate-800 placeholder-slate-400"
                     />
 
-                    {/* Image Upload Area */}
-                    <div>
-                        <input 
-                            type="file" 
-                            multiple 
-                            accept="image/*" 
-                            ref={fileInputRef}
-                            className="hidden"
-                            onChange={handleFileChange}
-                        />
-                        <div 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors"
-                        >
-                            <Upload className="text-slate-400 mb-2" size={32} />
-                            <h4 className="text-sm font-semibold text-slate-700">{t.analysis.uploadTitle}</h4>
-                            <p className="text-xs text-slate-500 mt-1">{t.analysis.uploadDesc}</p>
+                    {/* Image & Excel/CSV Upload Area */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Image Upload */}
+                        <div>
+                            <input 
+                                type="file" 
+                                multiple 
+                                accept="image/*" 
+                                ref={fileInputRef}
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
+                            <div 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="border-2 border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors h-full"
+                            >
+                                <Upload className="text-slate-400 mb-2" size={24} />
+                                <h4 className="text-sm font-semibold text-slate-700">{t.analysis.uploadTitle}</h4>
+                                <p className="text-xs text-slate-500 mt-1">{t.analysis.uploadDesc}</p>
+                            </div>
                         </div>
 
-                        {/* Image Previews */}
-                        {images.length > 0 && (
-                            <div className="flex flex-wrap gap-3 mt-4">
-                                {images.map((img, idx) => (
-                                    <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group">
-                                        <img src={img} alt="preview" className="w-full h-full object-cover" />
-                                        <button 
-                                            onClick={() => removeImage(idx)}
-                                            className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X size={12} />
-                                        </button>
-                                    </div>
-                                ))}
+                        {/* Spreadsheet Upload */}
+                        <div>
+                            <input 
+                                type="file" 
+                                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+                                ref={csvInputRef}
+                                className="hidden"
+                                onChange={handleSpreadsheetChange}
+                            />
+                            <div 
+                                onClick={() => csvInputRef.current?.click()}
+                                className="border-2 border-dashed border-green-200 bg-green-50/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 transition-colors h-full"
+                            >
+                                {parsing ? (
+                                    <Loader2 className="animate-spin text-green-600 mb-2" size={24} />
+                                ) : (
+                                    <FileSpreadsheet className="text-green-500 mb-2" size={24} />
+                                )}
+                                <h4 className="text-sm font-semibold text-green-800">
+                                    {parsing ? t.analysis.parsing : t.analysis.uploadCSV}
+                                </h4>
+                                <p className="text-xs text-green-600 mt-1">{t.analysis.csvDesc}</p>
                             </div>
-                        )}
+                        </div>
                     </div>
+
+                    {/* Image Previews */}
+                    {images.length > 0 && (
+                        <div className="flex flex-wrap gap-3">
+                            {images.map((img, idx) => (
+                                <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group">
+                                    <img src={img} alt="preview" className="w-full h-full object-cover" />
+                                    <button 
+                                        onClick={() => removeImage(idx)}
+                                        className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Right: Actions & Tips */}
                 <div className="lg:col-span-1 flex flex-col justify-between">
                     <div className="bg-indigo-50 rounded-xl p-5 border border-indigo-100 mb-4 lg:mb-0">
                         <h4 className="text-indigo-800 font-bold text-sm mb-2 flex items-center"><ImageIcon size={16} className="mr-2"/> Pro Tip</h4>
+                        <p className="text-xs text-indigo-700 leading-relaxed mb-2">
+                            You can upload screenshots of WeChat conversations, Xiaohongshu posts, or Douyin comments.
+                        </p>
                         <p className="text-xs text-indigo-700 leading-relaxed">
-                            You can upload screenshots of WeChat conversations, Xiaohongshu posts, or Douyin comments. The AI will read text directly from the images using OCR.
+                            For bulk analysis, use the <strong>Import Excel/CSV</strong> button to upload comment exports from data platforms.
                         </p>
                     </div>
                     
