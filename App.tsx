@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Zap, Languages } from 'lucide-react';
+import { Zap, Languages, AlertTriangle } from 'lucide-react';
 import { Language, CRMLead, MinedLead } from './types';
 import { MarketAnalyzer } from './components/MarketAnalyzer';
 import { CRMBoard } from './components/CRMBoard';
@@ -9,6 +9,17 @@ import { TRANSLATIONS, APP_VERSION } from './constants';
 const App: React.FC = () => {
   const [view, setView] = useState<'analysis' | 'crm'>('analysis');
   const [lang, setLang] = useState<Language>('zh'); // Default to Chinese
+  const [hasApiKey, setHasApiKey] = useState(true);
+
+  // Check for API Key on mount (supports various formats)
+  useEffect(() => {
+    const checkKey = () => {
+        const viteKey = (import.meta as any).env?.VITE_API_KEY;
+        const processKey = typeof process !== 'undefined' ? (process.env.API_KEY || process.env.VITE_API_KEY) : '';
+        return !!(viteKey || processKey);
+    };
+    setHasApiKey(checkKey());
+  }, []);
 
   // CRM State - Initialized from LocalStorage
   const [crmLeads, setCrmLeads] = useState<CRMLead[]>(() => {
@@ -141,6 +152,24 @@ const App: React.FC = () => {
             {t.nav.crm}
           </button>
       </div>
+
+      {!hasApiKey && (
+        <div className="max-w-7xl mx-auto px-4 mt-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={20} />
+                <div className="text-sm text-red-700">
+                    <p className="font-bold mb-1">API Key is missing.</p>
+                    <p>
+                        If you are deploying on <strong>Vercel</strong>, please go to your Project Settings &gt; Environment Variables and set your key name to 
+                        <code className="bg-red-100 px-1.5 py-0.5 rounded mx-1 font-mono font-bold text-red-800">VITE_API_KEY</code>.
+                    </p>
+                    <p className="mt-1 text-xs opacity-80">
+                        Vercel does not expose standard keys to the browser for security reasons unless they are prefixed with VITE_.
+                    </p>
+                </div>
+            </div>
+        </div>
+      )}
 
       {view === 'analysis' ? (
         <div className="flex-grow py-10">

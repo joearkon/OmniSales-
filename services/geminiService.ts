@@ -2,6 +2,32 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult } from "../types";
 
+// Helper to reliably get API Key across different environments (Vite, Next, Create React App, etc.)
+const getApiKey = (): string => {
+  // 1. Try Vite / Modern ES Modules (Standard for Vercel + React)
+  // We use 'as any' to avoid TypeScript errors if types aren't set up for import.meta
+  try {
+    if ((import.meta as any).env?.VITE_API_KEY) {
+      return (import.meta as any).env.VITE_API_KEY;
+    }
+    if ((import.meta as any).env?.API_KEY) {
+      return (import.meta as any).env.API_KEY;
+    }
+  } catch (e) {
+    // Ignore error if import.meta is not defined
+  }
+
+  // 2. Try Node/Process Environment (If injected by build tool like Webpack/CRA)
+  if (typeof process !== 'undefined' && process.env) {
+    if (process.env.API_KEY) return process.env.API_KEY;
+    if (process.env.VITE_API_KEY) return process.env.VITE_API_KEY;
+    if (process.env.REACT_APP_API_KEY) return process.env.REACT_APP_API_KEY;
+    if (process.env.NEXT_PUBLIC_API_KEY) return process.env.NEXT_PUBLIC_API_KEY;
+  }
+
+  return '';
+};
+
 // Schemas for Market Analysis
 const accountAnalysisSchema: Schema = {
   type: Type.ARRAY,
@@ -170,8 +196,8 @@ const strategicOutreachSchema: Schema = {
 };
 
 export const analyzeMarketData = async (text: string, images: string[], mode: AnalysisMode, lang: Language): Promise<AnalysisResult> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key is missing.");
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("API Key is missing. Please set VITE_API_KEY in your environment variables.");
 
   const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-2.5-flash"; 
@@ -351,8 +377,8 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
 };
 
 export const generateStrategicOutreach = async (lead: MinedLead, lang: Language): Promise<StrategicOutreachResult> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key is missing.");
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("API Key is missing. Please set VITE_API_KEY in your environment variables.");
 
   const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-2.5-flash";
