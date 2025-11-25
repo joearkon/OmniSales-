@@ -171,16 +171,16 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {view === 'analysis' ? (
-        <div className="flex-grow py-10">
+      {/* Main Content Area - Render both views but toggle visibility to persist state */}
+      <div className={view === 'analysis' ? 'flex-grow py-10 block' : 'hidden'}>
            <MarketAnalyzer 
               lang={lang} 
               onAddToCRM={addToCRM} 
               crmLeads={crmLeads.map(l => l.accountName)} 
             />
-        </div>
-      ) : (
-        <div className="flex-grow py-10">
+      </div>
+
+      <div className={view === 'crm' ? 'flex-grow py-10 block' : 'hidden'}>
            <CRMBoard 
               leads={crmLeads} 
               onUpdate={updateCRMLead} 
@@ -188,8 +188,7 @@ const App: React.FC = () => {
               onImport={handleImportCRMLeads}
               lang={lang} 
            />
-        </div>
-      )}
+      </div>
     </div>
   );
 };
