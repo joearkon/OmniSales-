@@ -8,10 +8,9 @@ import { TRANSLATIONS, APP_VERSION } from './constants';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'analysis' | 'crm'>('analysis');
-  const [lang, setLang] = useState<Language>('zh'); // Default to Chinese
+  const [lang, setLang] = useState<Language>('zh'); 
   const [hasApiKey, setHasApiKey] = useState(true);
 
-  // Check for API Key on mount (supports various formats)
   useEffect(() => {
     const checkKey = () => {
         const viteKey = (import.meta as any).env?.VITE_API_KEY;
@@ -21,23 +20,21 @@ const App: React.FC = () => {
     setHasApiKey(checkKey());
   }, []);
 
-  // CRM State - Initialized from LocalStorage
   const [crmLeads, setCrmLeads] = useState<CRMLead[]>(() => {
     try {
       const saved = localStorage.getItem('crmLeads');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
-      console.warn("Failed to load CRM leads from storage", e);
+      console.warn("Failed to load CRM leads", e);
       return [];
     }
   });
 
-  // Save to LocalStorage whenever crmLeads changes
   useEffect(() => {
     try {
       localStorage.setItem('crmLeads', JSON.stringify(crmLeads));
     } catch (e) {
-      console.warn("Failed to save CRM leads to storage", e);
+      console.warn("Failed to save CRM leads", e);
     }
   }, [crmLeads]);
 
@@ -47,7 +44,6 @@ const App: React.FC = () => {
     setLang(prev => prev === 'en' ? 'zh' : 'en');
   };
 
-  // CRM Handlers
   const addToCRM = (minedLead: MinedLead) => {
     const newLead: CRMLead = {
       ...minedLead,
@@ -55,7 +51,7 @@ const App: React.FC = () => {
       status: 'New',
       addedAt: new Date().toISOString(),
       notes: '',
-      tags: [] // Initialize tags
+      tags: []
     };
     setCrmLeads(prev => [newLead, ...prev]);
   };
@@ -69,18 +65,9 @@ const App: React.FC = () => {
   };
 
   const handleImportCRMLeads = (importedLeads: CRMLead[]) => {
-      // Merge strategy: Prevent duplicates by ID or Account Name
       setCrmLeads(prev => {
           const existingIds = new Set(prev.map(l => l.id));
-          const existingNames = new Set(prev.map(l => l.accountName));
-          
-          const uniqueImports = importedLeads.filter(l => {
-              if (existingIds.has(l.id)) return false;
-              // Optional: prevent duplicate account names too
-              if (existingNames.has(l.accountName)) return false;
-              return true;
-          });
-          
+          const uniqueImports = importedLeads.filter(l => !existingIds.has(l.id));
           return [...uniqueImports, ...prev];
       });
       alert(t.crm.importSuccess);
@@ -88,7 +75,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
-      {/* Navbar */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('analysis')}>
@@ -137,7 +123,6 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      {/* Mobile Tabs */}
       <div className="md:hidden bg-white border-b border-slate-200 px-4 py-2 flex gap-2 overflow-x-auto">
           <button 
             onClick={() => setView('analysis')}
@@ -158,21 +143,21 @@ const App: React.FC = () => {
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
                 <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={20} />
                 <div className="text-sm text-red-700">
-                    <p className="font-bold mb-1">API Key is missing.</p>
+                    <p className="font-bold mb-1">{t.errors.apiKeyMissing}</p>
                     <p>
-                        If you are deploying on <strong>Vercel</strong>, please go to your Project Settings &gt; Environment Variables and set your key name to 
+                        {t.errors.vercelDesc}
                         <code className="bg-red-100 px-1.5 py-0.5 rounded mx-1 font-mono font-bold text-red-800">VITE_API_KEY</code>.
                     </p>
                     <p className="mt-1 text-xs opacity-80">
-                        Vercel does not expose standard keys to the browser for security reasons unless they are prefixed with VITE_.
+                        {t.errors.vercelTip}
                     </p>
                 </div>
             </div>
         </div>
       )}
 
-      {/* Main Content Area - Render both views but toggle visibility to persist state */}
-      <div className={view === 'analysis' ? 'flex-grow py-10 block' : 'hidden'}>
+      {/* Persistent Views using CSS toggle instead of conditional rendering */}
+      <div style={{ display: view === 'analysis' ? 'block' : 'none' }} className="flex-grow py-10">
            <MarketAnalyzer 
               lang={lang} 
               onAddToCRM={addToCRM} 
@@ -180,7 +165,7 @@ const App: React.FC = () => {
             />
       </div>
 
-      <div className={view === 'crm' ? 'flex-grow py-10 block' : 'hidden'}>
+      <div style={{ display: view === 'crm' ? 'block' : 'none' }} className="flex-grow py-10">
            <CRMBoard 
               leads={crmLeads} 
               onUpdate={updateCRMLead} 

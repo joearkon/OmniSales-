@@ -1,7 +1,7 @@
 
 import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
-export const APP_VERSION = 'v1.2.0';
+export const APP_VERSION = 'v1.2.1';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
@@ -16,9 +16,6 @@ export const ANALYSIS_MODES: Record<string, { label: string; icon: LucideIcon; c
   'LeadMining': { label: 'Value Assessment (High Quality Clients)', icon: Target, color: 'text-red-600' },
   'Identity': { label: 'Identify Identity (User vs Biz)', icon: UserCheck, color: 'text-indigo-600' },
   'Needs': { label: 'Mine Needs & Pain Points', icon: PieChart, color: 'text-green-600' },
-  'Classification': { label: 'Account Classification', icon: FileText, color: 'text-blue-600' },
-  'Competitors': { label: 'Competitor & Trends', icon: TrendingUp, color: 'text-purple-600' },
-  'Sentiment': { label: 'Sentiment Analysis', icon: BarChart, color: 'text-orange-600' },
   'Comments': { label: 'Comment Insights', icon: MessageCircle, color: 'text-pink-600' },
 };
 
@@ -36,6 +33,22 @@ export const TRANSLATIONS = {
     nav: {
       marketIntel: "Market Intelligence",
       crm: "CRM Pipeline"
+    },
+    errors: {
+      apiKeyMissing: "API Key is missing.",
+      vercelDesc: "If you are deploying on Vercel, please set Environment Variable:",
+      vercelTip: "Vercel requires 'VITE_' prefix for frontend exposure.",
+      fileEmpty: "File appears empty.",
+      columnMissing: "Could not identify 'Content' column.",
+      parseFail: "Failed to parse file.",
+      invalidJson: "Invalid JSON: Expected an array.",
+      emptyCSV: "Empty CSV file.",
+      unsupportedFile: "Unsupported file type. Use .json or .csv."
+    },
+    common: {
+      generatedAt: "Generated at",
+      selectAll: "Select All",
+      copyInfo: "Copy Info"
     },
     crm: {
       title: "CRM Lead Management",
@@ -60,6 +73,12 @@ export const TRANSLATIONS = {
         addTag: "Add Tag",
         placeholder: "Tag name..."
       },
+      sorting: {
+        sortBy: "Sort By",
+        dateDesc: "Date (Newest)",
+        valueHigh: "Value (High to Low)",
+        outreach: "Outreach (Opp. First)"
+      },
       notes: "Notes",
       emptyNote: "Click to add private notes...",
       searchPlaceholder: "Search leads, notes, tags...",
@@ -74,11 +93,13 @@ export const TRANSLATIONS = {
       exportCSV: "Export CSV",
       exportJSON: "Export Backup (JSON)",
       importSuccess: "Successfully imported leads.",
-      importError: "Failed to import file. Please check format."
+      importError: "Failed to import file. Please check format.",
+      csvHeaders: ['ID', 'Account Name', 'Platform', 'Type', 'Value Category', 'Status', 'Notes', 'Tags', 'Context', 'Added At']
     },
     analysis: {
       title: "Market Intelligence Analyzer",
       subtitle: "Paste raw text, upload screenshots, or import Excel/CSV comments to extract insights.",
+      inputTip: "💡 Tip: For best results, paste comments in the format 'User Name | Comment Content | Date'. If importing Excel, ensure headers like 'Content' and 'User Name' are present.",
       proTip: {
         title: "Pro Tip",
         desc1: "You can upload screenshots of WeChat conversations, Xiaohongshu posts, or Douyin comments.",
@@ -95,13 +116,18 @@ export const TRANSLATIONS = {
       remove: "Remove",
       exportCSV: "Export to Excel (CSV)",
       exportTxt: "Export Report (Text)",
+      csvHeaders: {
+        category: "Category",
+        item: "Item",
+        detail: "Detail/Percentage",
+        content: "Content",
+        metric: "Metric",
+        value: "Value"
+      },
       modes: {
         LeadMining: "Value Assessment (High Quality Clients)",
-        Identity: "Identity Identification (User vs Biz)",
-        Classification: "Account Classification",
+        Identity: "Identify Identity (User vs Biz)",
         Needs: "Mine Needs & Pain Points",
-        Competitors: "Competitors & Trends",
-        Sentiment: "Sentiment Analysis",
         Comments: "Comment Insights"
       },
       results: {
@@ -144,7 +170,24 @@ export const TRANSLATIONS = {
         addToCRM: "Add to CRM",
         exportStrategy: "Export Strategy",
         reportTitle: "MARKET INTELLIGENCE REPORT",
-        strategyTitle: "STRATEGIC ACTION PLAN"
+        strategyTitle: "STRATEGIC ACTION PLAN",
+        generated: "Generated",
+        outreachStatus: "Outreach Status",
+        statuses: {
+            likelyUncontacted: "Likely Uncontacted",
+            likelyContacted: "Likely Contacted",
+            unknown: "Unknown"
+        },
+        filters: {
+            all: "All",
+            recent: "Recent (<3 Months)",
+            stale: "Old (>3 Months)",
+            leadType: "Lead Type",
+            platform: "Platform",
+            selectType: "Select Type",
+            selectPlatform: "Select Platform"
+        },
+        date: "Date"
       }
     }
   },
@@ -154,6 +197,22 @@ export const TRANSLATIONS = {
     nav: {
       marketIntel: "市场情报 (Market Intelligence)",
       crm: "CRM 客户管理"
+    },
+    errors: {
+      apiKeyMissing: "未检测到 API Key。",
+      vercelDesc: "如果您部署在 Vercel，请设置环境变量：",
+      vercelTip: "Vercel 前端环境变量需要 'VITE_' 前缀。",
+      fileEmpty: "文件内容为空。",
+      columnMissing: "无法识别 'Content' (评论内容) 列。",
+      parseFail: "文件解析失败。",
+      invalidJson: "无效的 JSON：需要数组格式。",
+      emptyCSV: "CSV 文件为空。",
+      unsupportedFile: "不支持的文件类型，请使用 .json 或 .csv。"
+    },
+    common: {
+      generatedAt: "生成时间",
+      selectAll: "全选",
+      copyInfo: "复制信息"
     },
     crm: {
       title: "CRM 客户管理看板",
@@ -178,6 +237,12 @@ export const TRANSLATIONS = {
         addTag: "添加标签",
         placeholder: "输入标签名..."
       },
+      sorting: {
+        sortBy: "排序方式",
+        dateDesc: "发布时间 (由新到旧)",
+        valueHigh: "价值等级 (由高到低)",
+        outreach: "触达机会 (未触达优先)"
+      },
       notes: "备注",
       emptyNote: "点击添加私密备注...",
       searchPlaceholder: "搜索客户名、备注、标签...",
@@ -192,11 +257,13 @@ export const TRANSLATIONS = {
       exportCSV: "导出 Excel",
       exportJSON: "导出备份 (JSON)",
       importSuccess: "成功导入客户数据。",
-      importError: "导入失败，请检查文件格式。"
+      importError: "导入失败，请检查文件格式。",
+      csvHeaders: ['ID', '账号名', '平台', '类型', '价值等级', '状态', '备注', '标签', '上下文', '添加时间']
     },
     analysis: {
       title: "市场情报分析器",
       subtitle: "粘贴文本、上传截图或导入评论 Excel/CSV，自动提取价值信息。",
+      inputTip: "💡 提示：为获得最佳分析结果，请以“用户名 | 评论内容 | 时间”的格式粘贴。导入 Excel 时，请确保包含“评论内容”、“评论人”等列。",
       proTip: {
         title: "使用技巧",
         desc1: "您可以上传微信聊天记录、小红书笔记或抖音评论的截图。",
@@ -213,13 +280,18 @@ export const TRANSLATIONS = {
       remove: "移除",
       exportCSV: "导出 Excel (CSV)",
       exportTxt: "导出文本报告 (Text)",
+      csvHeaders: {
+        category: "类别",
+        item: "项目",
+        detail: "详情/占比",
+        content: "内容",
+        metric: "指标",
+        value: "数值"
+      },
       modes: {
         LeadMining: "潜客价值评估 (High Quality Clients)",
         Identity: "客户身份识别 (Identity Identification)",
-        Classification: "账号类型分类",
         Needs: "用户痛点与需求挖掘 (Needs Mining)",
-        Competitors: "竞品与趋势分析",
-        Sentiment: "情感倾向分析",
         Comments: "评论深度分析"
       },
       results: {
@@ -262,7 +334,24 @@ export const TRANSLATIONS = {
         addToCRM: "添加至 CRM",
         exportStrategy: "导出行动方案",
         reportTitle: "市场情报分析报告",
-        strategyTitle: "触达行动方案"
+        strategyTitle: "触达行动方案",
+        generated: "生成时间",
+        outreachStatus: "触达状态预判",
+        statuses: {
+            likelyUncontacted: "大概率未触达 (机会大)",
+            likelyContacted: "可能已被触达 (竞对)",
+            unknown: "无法判断"
+        },
+        filters: {
+            all: "全部时间",
+            recent: "近期 (<3个月)",
+            stale: "陈旧 (>3个月)",
+            leadType: "客户类型",
+            platform: "平台来源",
+            selectType: "选择类型",
+            selectPlatform: "选择平台"
+        },
+        date: "发布时间"
       }
     }
   }

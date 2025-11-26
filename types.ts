@@ -36,47 +36,13 @@ export enum AppView {
 export type Language = 'en' | 'zh';
 
 // Market Analysis Types
-export type AnalysisMode = 'Classification' | 'Needs' | 'Competitors' | 'Sentiment' | 'Comments' | 'Identity' | 'LeadMining';
-
-export interface AccountAnalysisItem {
-  platform: string;
-  accountName: string;
-  type: string; // 'Brand', 'Factory', 'KOL', 'Service'
-  coreBusiness: string;
-  features: string;
-  contactClues: string;
-}
+// Removed Classification, Competitors, Sentiment as requested
+export type AnalysisMode = 'Needs' | 'Comments' | 'Identity' | 'LeadMining';
 
 export interface NeedsAnalysisResult {
   coreNeeds: Array<{ need: string; example: string }>;
   painPoints: Array<{ point: string; example: string }>;
   preferences: Array<{ preference: string; example: string }>;
-}
-
-export interface CompetitorAnalysisResult {
-  competitors: Array<{
-    brand: string;
-    pros: string;
-    cons: string;
-    targetAudience: string;
-  }>;
-  trends: Array<{
-    trend: string;
-    evidence: string;
-  }>;
-}
-
-export interface SentimentAnalysisResult {
-  sentimentBreakdown: {
-    positive: number;
-    neutral: number;
-    negative: number;
-  };
-  topKeywords: Array<{ keyword: string; count: number }>;
-  examples: {
-    positive: string;
-    negative: string;
-  };
 }
 
 export interface CommentAnalysisResult {
@@ -101,6 +67,8 @@ export interface MinedLead {
   accountName: string;
   leadType: 'Factory' | 'User' | 'KOL'; // Specific classification
   valueCategory: 'High Value User' | 'Medium Value User' | 'Low Value User' | 'Potential Partner';
+  outreachStatus: 'Likely Uncontacted' | 'Likely Contacted' | 'Unknown'; // New field
+  date?: string; // YYYY-MM-DD
   reason: string; // Why they are high value
   suggestedAction: string; // e.g. "Direct Message product link"
   context: string; // Brief snippet of what they said
@@ -133,10 +101,7 @@ export interface StrategicOutreachResult {
 }
 
 export type AnalysisResult = 
-  | { mode: 'Classification'; data: AccountAnalysisItem[] }
   | { mode: 'Needs'; data: NeedsAnalysisResult }
-  | { mode: 'Competitors'; data: CompetitorAnalysisResult }
-  | { mode: 'Sentiment'; data: SentimentAnalysisResult }
   | { mode: 'Comments'; data: CommentAnalysisResult }
   | { mode: 'Identity'; data: IdentityAnalysisItem[] }
   | { mode: 'LeadMining'; data: LeadMiningResult };

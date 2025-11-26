@@ -2,7 +2,7 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { CRMLead, Language } from '../types';
 import { CRM_STATUSES, TRANSLATIONS } from '../constants';
-import { Trash2, Edit2, User, Factory, Smartphone, MessageSquare, Download, Upload, AlertCircle, Tag, Plus, X, Check, Search, PieChart, TrendingUp, Users, CheckSquare, Square, Copy } from 'lucide-react';
+import { Trash2, Edit2, User, Factory, Smartphone, MessageSquare, Download, Upload, AlertCircle, Tag, Plus, X, Check, Search, PieChart, TrendingUp, Users, CheckSquare, Square, Copy, ArrowUpDown } from 'lucide-react';
 
 interface CRMBoardProps {
   leads: CRMLead[];
@@ -18,6 +18,7 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
   const [editNotes, setEditNotes] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortOption, setSortOption] = useState<'dateDesc' | 'valueHigh' | 'outreach'>('dateDesc');
   
   // Bulk Actions State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -41,9 +42,9 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
     return { total, highValue, contacted, conversionRate };
   }, [leads]);
 
-  // --- Filtering & Searching ---
-  const filteredLeads = useMemo(() => {
-    return leads.filter(l => {
+  // --- Filtering & Searching & Sorting ---
+  const processedLeads = useMemo(() => {
+    let result = leads.filter(l => {
         const matchesStatus = statusFilter === 'All' || l.status === statusFilter;
         const searchLower = searchTerm.toLowerCase();
         const matchesSearch = !searchTerm || 
@@ -54,7 +55,45 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
         
         return matchesStatus && matchesSearch;
     });
-  }, [leads, statusFilter, searchTerm]);
+
+    // Sort Helpers
+    const getValueRank = (v: string) => {
+        if (v === 'High Value User') return 4;
+        if (v === 'Potential Partner') return 3;
+        if (v === 'Medium Value User') return 2;
+        return 1;
+    };
+    const getOutreachRank = (s: string) => {
+         if (s === 'Likely Uncontacted') return 3;
+         if (s === 'Unknown') return 2;
+         return 1;
+    };
+    const getDate = (l: CRMLead) => l.date ? new Date(l.date).getTime() : new Date(l.addedAt).getTime();
+
+    result.sort((a, b) => {
+        if (sortOption === 'dateDesc') {
+            const dateA = getDate(a);
+            const dateB = getDate(b);
+            const diff = dateB - dateA; // Newest first
+            if (diff !== 0) return diff;
+            // Secondary sort: Value
+            return getValueRank(b.valueCategory) - getValueRank(a.valueCategory);
+        } else if (sortOption === 'valueHigh') {
+            const valDiff = getValueRank(b.valueCategory) - getValueRank(a.valueCategory);
+            if (valDiff !== 0) return valDiff;
+            // Secondary sort: Date
+            return getDate(b) - getDate(a);
+        } else if (sortOption === 'outreach') {
+            const outDiff = getOutreachRank(b.outreachStatus) - getOutreachRank(a.outreachStatus);
+            if (outDiff !== 0) return outDiff;
+            // Secondary sort: Value
+            return getValueRank(b.valueCategory) - getValueRank(a.valueCategory);
+        }
+        return 0;
+    });
+
+    return result;
+  }, [leads, statusFilter, searchTerm, sortOption]);
 
   // --- Handlers ---
 
@@ -88,17 +127,15 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
   };
 
   const toggleSelectAll = () => {
-      if (selectedIds.size === filteredLeads.length) {
+      if (selectedIds.size === processedLeads.length) {
           setSelectedIds(new Set());
       } else {
-          setSelectedIds(new Set(filteredLeads.map(l => l.id)));
+          setSelectedIds(new Set(processedLeads.map(l => l.id)));
       }
   };
 
   const handleBulkDelete = () => {
       if (!confirm(t.crm.deleteConfirm.replace('{count}', String(selectedIds.size)))) return;
-      // We need to call onDelete for each ID since prop only supports one. 
-      // Ideally, App.tsx should support bulk delete, but loop works for now.
       selectedIds.forEach(id => onDelete(id));
       setSelectedIds(new Set());
   };
@@ -108,7 +145,6 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
       selectedIds.forEach(id => {
           const lead = leads.find(l => l.id === id);
           if (lead) {
-              // Avoid duplicates
               if (!lead.tags?.includes(bulkTagText.trim())) {
                   onUpdate(id, { tags: [...(lead.tags || []), bulkTagText.trim()] });
               }
@@ -125,7 +161,6 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
       alert(t.crm.copySuccess);
   };
 
-  // Import/Export Logic (Same as before)
   const downloadFile = (content: string, filename: string, type: 'csv' | 'json') => {
     const bom = type === 'csv' ? '\uFEFF' : ''; 
     const blob = new Blob([bom + content], { type: type === 'csv' ? 'text/csv;charset=utf-8;' : 'application/json;charset=utf-8;' });
@@ -148,7 +183,7 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
   };
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Account Name', 'Platform', 'Type', 'Value Category', 'Status', 'Notes', 'Tags', 'Context', 'Added At'];
+    const headers = t.crm.csvHeaders;
     const escape = (str: string) => {
         const s = String(str || '');
         if (s.search(/("|,|\n)/g) >= 0) return `"${s.replace(/"/g, '""')}"`;
@@ -179,7 +214,7 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
                 if (Array.isArray(data)) {
                     onImport(data);
                 } else {
-                    setImportError("Invalid JSON: Expected an array of leads.");
+                    setImportError(t.errors.invalidJson);
                 }
             } else if (file.name.endsWith('.csv')) {
                  const lines = content.split('\n').filter(l => l.trim());
@@ -203,13 +238,14 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
                             context: clean(row[8]) || '',
                             addedAt: clean(row[9]) || new Date().toISOString(),
                             reason: '',
-                            suggestedAction: ''
+                            suggestedAction: '',
+                            outreachStatus: 'Unknown'
                         });
                      }
                  }
                  onImport(newLeads);
             } else {
-                setImportError("Unsupported file type. Please use .json or .csv");
+                setImportError(t.errors.unsupportedFile);
             }
         } catch (err) {
             console.error(err);
@@ -264,8 +300,21 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
                 />
             </div>
 
-            {/* Import/Export */}
+            {/* Sort & Import/Export */}
             <div className="flex gap-2">
+                {/* Sort */}
+                <div className="relative group">
+                    <button className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-lg transition-colors flex items-center gap-2 text-xs font-medium">
+                        <ArrowUpDown size={16} /> 
+                        <span className="hidden sm:inline">{t.crm.sorting.sortBy}</span>
+                    </button>
+                    <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg hidden group-hover:block z-20 p-1">
+                        <button onClick={() => setSortOption('dateDesc')} className={`w-full text-left px-3 py-2 text-xs rounded hover:bg-slate-50 ${sortOption === 'dateDesc' ? 'text-indigo-600 font-bold' : 'text-slate-600'}`}>{t.crm.sorting.dateDesc}</button>
+                        <button onClick={() => setSortOption('valueHigh')} className={`w-full text-left px-3 py-2 text-xs rounded hover:bg-slate-50 ${sortOption === 'valueHigh' ? 'text-indigo-600 font-bold' : 'text-slate-600'}`}>{t.crm.sorting.valueHigh}</button>
+                        <button onClick={() => setSortOption('outreach')} className={`w-full text-left px-3 py-2 text-xs rounded hover:bg-slate-50 ${sortOption === 'outreach' ? 'text-indigo-600 font-bold' : 'text-slate-600'}`}>{t.crm.sorting.outreach}</button>
+                    </div>
+                </div>
+
                 <input type="file" ref={importInputRef} onChange={handleImportFile} accept=".json,.csv" className="hidden" />
                 <button onClick={() => importInputRef.current?.click()} className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-lg transition-colors" title={t.crm.import}>
                     <Upload size={18} />
@@ -344,7 +393,7 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
       )}
 
       {/* 5. Lead List */}
-      {filteredLeads.length === 0 ? (
+      {processedLeads.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
            <User size={48} className="mx-auto text-slate-300 mb-4" />
            <p className="text-slate-500">{t.crm.empty}</p>
@@ -354,13 +403,13 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
             {/* Select All Checkbox */}
             <div className="flex items-center px-2">
                 <button onClick={toggleSelectAll} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700">
-                    {selectedIds.size === filteredLeads.length && filteredLeads.length > 0 ? <CheckSquare size={16} className="text-indigo-600"/> : <Square size={16}/>}
-                    Select All
+                    {selectedIds.size === processedLeads.length && processedLeads.length > 0 ? <CheckSquare size={16} className="text-indigo-600"/> : <Square size={16}/>}
+                    {t.common.selectAll}
                 </button>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-            {filteredLeads.map(lead => {
+            {processedLeads.map(lead => {
                 const statusConfig = CRM_STATUSES[lead.status];
                 const isSelected = selectedIds.has(lead.id);
 
@@ -386,7 +435,7 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
                                     
                                     <span className="text-xs bg-slate-100 px-2 py-0.5 rounded-full text-slate-500 border border-slate-200">{lead.platform}</span>
                                     
-                                    <button onClick={() => handleCopyLeadInfo(lead)} className="text-slate-300 hover:text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" title="Copy Info">
+                                    <button onClick={() => handleCopyLeadInfo(lead)} className="text-slate-300 hover:text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" title={t.common.copyInfo}>
                                         <Copy size={14} />
                                     </button>
                                 </div>
