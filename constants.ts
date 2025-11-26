@@ -1,7 +1,7 @@
 
 import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
-export const APP_VERSION = 'v1.2.1';
+export const APP_VERSION = 'v1.2.2';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },

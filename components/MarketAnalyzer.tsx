@@ -281,42 +281,6 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
     downloadFile(content, `Strategy_${lead.accountName}.txt`, 'txt');
   };
 
-  const generateCSV = (res: AnalysisResult): string => {
-    let headers: string[] = [];
-    let rows: string[][] = [];
-
-    const escape = (str: string) => {
-      const s = String(str || '');
-      if (s.search(/("|,|\n)/g) >= 0) return `"${s.replace(/"/g, '""')}"`;
-      return s;
-    };
-
-    if (res.mode === 'LeadMining') {
-        headers = [r.platform, r.account, r.type, r.valueCategory, r.outreachStatus, r.date, r.reason, r.action, 'Context'];
-        rows = res.data.leads.map(l => [l.platform, l.accountName, l.leadType, l.valueCategory, l.outreachStatus, l.date || '', l.reason, l.suggestedAction, l.context]);
-    } else {
-        headers = [r.category, r.item, r.detail];
-        if (res.mode === 'Identity') {
-           rows = res.data.map(i => [i.platform, i.name, `${i.identity} - ${i.description}`]);
-        } else if (res.mode === 'Needs') {
-           rows = [
-             ...res.data.coreNeeds.map(n => ['Core Needs', n.need, n.example]),
-             ...res.data.painPoints.map(p => ['Pain Points', p.point, p.example]),
-             ...res.data.preferences.map(pr => ['Preferences', pr.preference, pr.example])
-           ];
-        } else if (res.mode === 'Comments') {
-           rows = [
-             ...res.data.userPersonas.map(p => ['Persona', p.profile, p.characteristics]),
-             ...res.data.commonQuestions.map(q => ['Question', q, '']),
-             ...res.data.purchaseMotivations.map(m => ['Motivation', m, '']),
-             ...res.data.concerns.map(c => ['Concern', c, ''])
-           ];
-        }
-    }
-
-    return [headers.join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
-  };
-
   const isStale = (dateStr?: string) => {
       if (!dateStr) return false;
       const d = new Date(dateStr);
@@ -366,6 +330,44 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
         return (priority[a.valueCategory] ?? 4) - (priority[b.valueCategory] ?? 4);
     });
   }, [result, filterTime, filterLeadType, filterPlatform]);
+
+  const generateCSV = (res: AnalysisResult, sortedLeads?: MinedLead[]): string => {
+    let headers: string[] = [];
+    let rows: string[][] = [];
+
+    const escape = (str: string) => {
+      const s = String(str || '');
+      if (s.search(/("|,|\n)/g) >= 0) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+
+    if (res.mode === 'LeadMining') {
+        headers = [r.platform, r.account, r.type, r.valueCategory, r.outreachStatus, r.date, r.reason, r.action, 'Context'];
+        // Use sortedLeads if available (WYSIWYG), otherwise fallback to raw data
+        const source = sortedLeads || res.data.leads;
+        rows = source.map(l => [l.platform, l.accountName, l.leadType, l.valueCategory, l.outreachStatus, l.date || '', l.reason, l.suggestedAction, l.context]);
+    } else {
+        headers = [r.category, r.item, r.detail];
+        if (res.mode === 'Identity') {
+           rows = res.data.map(i => [i.platform, i.name, `${i.identity} - ${i.description}`]);
+        } else if (res.mode === 'Needs') {
+           rows = [
+             ...res.data.coreNeeds.map(n => ['Core Needs', n.need, n.example]),
+             ...res.data.painPoints.map(p => ['Pain Points', p.point, p.example]),
+             ...res.data.preferences.map(pr => ['Preferences', pr.preference, pr.example])
+           ];
+        } else if (res.mode === 'Comments') {
+           rows = [
+             ...res.data.userPersonas.map(p => ['Persona', p.profile, p.characteristics]),
+             ...res.data.commonQuestions.map(q => ['Question', q, '']),
+             ...res.data.purchaseMotivations.map(m => ['Motivation', m, '']),
+             ...res.data.concerns.map(c => ['Concern', c, ''])
+           ];
+        }
+    }
+
+    return [headers.join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+  };
 
   const renderResults = () => {
     if (!result) return null;
@@ -438,7 +440,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                 </div>
 
                 <button onClick={() => {
-                     const csv = generateCSV(result);
+                     const csv = generateCSV(result, sortedAndFilteredLeads);
                      downloadFile(csv, 'Analysis_Report.csv', 'csv');
                 }} className="btn-sm-outline flex items-center gap-1 px-3 py-1.5 border rounded hover:bg-slate-50 text-sm">
                     <Download size={14}/> CSV
