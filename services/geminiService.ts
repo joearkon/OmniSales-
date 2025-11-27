@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult, CompanyProfile } from "../types";
+import { Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult, CompanyProfile, DeepPersonaResult } from "../types";
 
 // Helper to reliably get API Key across different environments (Vite, Next, Create React App, etc.)
 const getApiKey = (): string => {
@@ -130,6 +130,36 @@ const strategicOutreachSchema: Schema = {
       }
     },
     privateDomainTip: { type: Type.STRING }
+  }
+};
+
+const deepPersonaSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+    visualEvidence: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific visual cues found in screenshots (e.g. 'Luxury bag', 'Baby stroller')" },
+    psychology: {
+      type: Type.OBJECT,
+      properties: {
+        buyingLogic: { type: Type.STRING },
+        painPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
+        spendingPower: { type: Type.STRING, enum: ['High', 'Medium', 'Low'] }
+      }
+    },
+    match: {
+      type: Type.OBJECT,
+      properties: {
+        bestProduct: { type: Type.STRING },
+        whyFit: { type: Type.STRING }
+      }
+    },
+    approach: {
+      type: Type.OBJECT,
+      properties: {
+        openingLine: { type: Type.STRING },
+        toneAdvice: { type: Type.STRING }
+      }
+    }
   }
 };
 
@@ -320,4 +350,63 @@ export const generateStrategicOutreach = async (lead: MinedLead, lang: Language,
   });
 
   return JSON.parse(response.text || "{}") as StrategicOutreachResult;
+};
+
+// NEW FUNCTION for Deep Persona Analysis
+export const generateDeepPersona = async (lead: MinedLead, extraText: string, extraImages: string[], lang: Language, profile?: CompanyProfile): Promise<DeepPersonaResult> => {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("API Key is missing.");
+
+  const ai = new GoogleGenAI({ apiKey });
+  const modelId = "gemini-2.5-flash";
+
+  let factoryContext = "";
+  if (profile) {
+      factoryContext = `
+        Our Factory Products: ${profile.products || 'Intimate Care'}.
+        Our Advantages: ${profile.advantages}.
+      `;
+  }
+
+  const promptText = `
+    **ROLE:** You are a Consumer Psychologist & Senior Sales Strategist.
+    
+    **TASK:** 
+    Analyze this target user (${lead.accountName} on ${lead.platform}) based on the provided screenshots (homepage, posts) and text bio.
+    Construct a 360-degree 'Deep Persona' to help us sell intimate care/factory services to them.
+
+    **CONTEXT:**
+    - Original Lead Info: ${JSON.stringify(lead)}
+    - Extra Bio/Post Text: ${extraText}
+    - Factory Context: ${factoryContext}
+
+    **ANALYSIS OBJECTIVES:**
+    1. **Tags:** Infer lifestyle tags (e.g. "Postpartum", "Fitness", "Luxury", "Student").
+    2. **Visual Evidence:** List specific items, colors, or scenes visible in the images that support your deductions (e.g. "Spotted Hermès bag -> High spending", "Baby stroller in bg -> Postpartum").
+    3. **Psychology:** What drives their buying decisions? (e.g. "Fear of aging", "Price sensitivity", "Trusts data").
+    4. **Spending Power:** Estimate based on visual cues (clothing, background) and platform behavior.
+    5. **Match:** Which of OUR products fits them best? Why?
+    6. **Approach:** Write a "Killer Opener" (highly personalized private message) and define the best tone.
+
+    Language: ${lang === 'zh' ? 'Simplified Chinese' : 'English'}.
+  `;
+
+  const contentParts: any[] = [
+      { text: promptText }
+  ];
+
+  if (extraImages && extraImages.length > 0) {
+      extraImages.forEach(base64String => {
+         const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
+         contentParts.push({ inlineData: { mimeType: "image/jpeg", data: base64Data } });
+      });
+  }
+
+  const response = await ai.models.generateContent({
+    model: modelId,
+    contents: { parts: contentParts },
+    config: { responseMimeType: "application/json", responseSchema: deepPersonaSchema }
+  });
+
+  return JSON.parse(response.text || "{}") as DeepPersonaResult;
 };

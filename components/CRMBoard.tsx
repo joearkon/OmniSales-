@@ -1,8 +1,9 @@
 
 import React, { useRef, useState, useMemo } from 'react';
-import { CRMLead, Language } from '../types';
+import { CRMLead, Language, DeepPersonaResult, CompanyProfile } from '../types';
 import { CRM_STATUSES, TRANSLATIONS } from '../constants';
-import { Trash2, Edit2, User, Factory, Smartphone, MessageSquare, Download, Upload, AlertCircle, Tag, Plus, X, Check, Search, PieChart, TrendingUp, Users, CheckSquare, Square, Copy, ArrowUpDown } from 'lucide-react';
+import { Trash2, Edit2, User, Factory, Smartphone, MessageSquare, Download, Upload, AlertCircle, Tag, Plus, X, Check, Search, PieChart, TrendingUp, Users, CheckSquare, Square, Copy, ArrowUpDown, Microscope, Brain } from 'lucide-react';
+import { DeepAnalysisModal } from './DeepAnalysisModal';
 
 interface CRMBoardProps {
   leads: CRMLead[];
@@ -10,9 +11,12 @@ interface CRMBoardProps {
   onDelete: (id: string) => void;
   onImport: (importedLeads: CRMLead[]) => void;
   lang: Language;
+  // Deep Analysis needs profile access
+  // Ideally this would be passed down, but for now we might need to assume it's available or pass it through App
 }
 
-export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, onImport, lang }) => {
+// Update props to accept companyProfile for the deep analysis agent
+export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfile }> = ({ leads, onUpdate, onDelete, onImport, lang, companyProfile }) => {
   const t = TRANSLATIONS[lang];
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
@@ -31,6 +35,9 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
   // Tagging State (Single Item)
   const [addingTagId, setAddingTagId] = useState<string | null>(null);
   const [newTagText, setNewTagText] = useState('');
+
+  // Deep Analysis State
+  const [deepAnalyzeLead, setDeepAnalyzeLead] = useState<CRMLead | null>(null);
 
   // --- Statistics ---
   const stats = useMemo(() => {
@@ -257,6 +264,10 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
     reader.readAsText(file);
   };
 
+  const saveDeepAnalysis = (id: string, result: DeepPersonaResult) => {
+      onUpdate(id, { deepAnalysis: result });
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-6">
       
@@ -412,6 +423,7 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
             {processedLeads.map(lead => {
                 const statusConfig = CRM_STATUSES[lead.status];
                 const isSelected = selectedIds.has(lead.id);
+                const hasDeepAnalysis = !!lead.deepAnalysis;
 
                 return (
                 <div key={lead.id} className={`bg-white border rounded-xl p-5 shadow-sm transition-all group ${isSelected ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50/10' : 'border-slate-200 hover:border-indigo-200'}`}>
@@ -438,6 +450,12 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
                                     <button onClick={() => handleCopyLeadInfo(lead)} className="text-slate-300 hover:text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" title={t.common.copyInfo}>
                                         <Copy size={14} />
                                     </button>
+                                    
+                                    {hasDeepAnalysis && (
+                                        <span className="flex items-center gap-1 text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full border border-purple-100 font-medium">
+                                            <Brain size={12} /> {t.crm.analyzed}
+                                        </span>
+                                    )}
                                 </div>
                                 <p className="text-sm text-slate-600 mb-3 bg-slate-50 p-2 rounded border border-slate-100 italic">"{lead.context}"</p>
                                 
@@ -515,6 +533,14 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
                                     </select>
                                 </div>
                                 
+                                {/* Deep Analysis Button */}
+                                <button 
+                                    onClick={() => setDeepAnalyzeLead(lead)}
+                                    className={`flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-lg border transition-all ${hasDeepAnalysis ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-600'}`}
+                                >
+                                    <Microscope size={14} /> {t.crm.deepAnalyze}
+                                </button>
+
                                 <div className="mt-auto flex justify-end">
                                     <button 
                                         onClick={() => onDelete(lead.id)}
@@ -533,6 +559,16 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
             </div>
         </div>
       )}
+
+      {/* Deep Analysis Modal */}
+      <DeepAnalysisModal 
+         isOpen={!!deepAnalyzeLead}
+         onClose={() => setDeepAnalyzeLead(null)}
+         lead={deepAnalyzeLead}
+         companyProfile={companyProfile || { name: '', products: '', advantages: '', policy: '' }}
+         lang={lang}
+         onSave={saveDeepAnalysis}
+      />
     </div>
   );
 };

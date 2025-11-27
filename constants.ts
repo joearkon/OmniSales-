@@ -1,7 +1,7 @@
 
 import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
-export const APP_VERSION = 'v1.2.4';
+export const APP_VERSION = 'v1.2.6';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
@@ -132,7 +132,32 @@ export const TRANSLATIONS = {
       exportJSON: "Export Backup (JSON)",
       importSuccess: "Successfully imported leads.",
       importError: "Failed to import file. Please check format.",
-      csvHeaders: ['ID', 'Account Name', 'Platform', 'Type', 'Value Category', 'Status', 'Notes', 'Tags', 'Context', 'Added At']
+      csvHeaders: ['ID', 'Account Name', 'Platform', 'Type', 'Value Category', 'Status', 'Notes', 'Tags', 'Context', 'Added At'],
+      
+      // Deep Analysis
+      deepAnalyze: "Deep Persona Analysis",
+      analyzed: "Analyzed"
+    },
+    deepAnalysis: {
+        title: "Deep Persona Agent",
+        subtitle: "Upload homepage screenshots or paste profile info to build a 360° user portrait.",
+        uploadTip: "Upload screenshots of their Homepage / Recent Posts",
+        textTip: "Or paste their Bio / Recent Post Content here",
+        analyzing: "Profiling...",
+        analyze: "Start Profiling",
+        resultTitle: "Persona Report",
+        visualEvidence: "Sherlock's Deductions (Visual Clues)",
+        psychology: "Psychological Profile",
+        buyingLogic: "Buying Logic",
+        painPoints: "Hidden Pain Points",
+        spendingPower: "Spending Power",
+        match: "Product Match",
+        whyFit: "Why it fits",
+        approach: "Engagement Strategy",
+        openingLine: "Killer Opener",
+        tone: "Recommended Tone",
+        copy: "Copy Opener",
+        copied: "Copied!"
     },
     analysis: {
       title: "Market Intelligence Analyzer",
@@ -334,7 +359,32 @@ export const TRANSLATIONS = {
       exportJSON: "导出备份 (JSON)",
       importSuccess: "成功导入客户数据。",
       importError: "导入失败，请检查文件格式。",
-      csvHeaders: ['ID', '账号名', '平台', '类型', '价值等级', '状态', '备注', '标签', '上下文', '添加时间']
+      csvHeaders: ['ID', '账号名', '平台', '类型', '价值等级', '状态', '备注', '标签', '上下文', '添加时间'],
+      
+      // Deep Analysis
+      deepAnalyze: "深度画像探针",
+      analyzed: "已深度分析"
+    },
+    deepAnalysis: {
+        title: "深度画像探针 (Persona Agent)",
+        subtitle: "上传客户主页截图或粘贴资料，生成360°全息画像。",
+        uploadTip: "上传对方主页/作品截图 (支持多张)",
+        textTip: "或在此粘贴对方主页简介/最近作品内容",
+        analyzing: "AI 侧写中...",
+        analyze: "开始侧写",
+        resultTitle: "用户全息画像报告",
+        visualEvidence: "福尔摩斯时刻 (视觉证据)",
+        psychology: "消费心理侧写",
+        buyingLogic: "购买逻辑",
+        painPoints: "隐形痛点",
+        spendingPower: "预估消费力",
+        match: "产品匹配度",
+        whyFit: "匹配理由",
+        approach: "破冰攻单策略",
+        openingLine: "必杀开场白",
+        tone: "建议语态",
+        copy: "复制话术",
+        copied: "已复制"
     },
     analysis: {
       title: "市场情报分析器",

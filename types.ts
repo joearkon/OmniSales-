@@ -73,12 +73,32 @@ export interface MinedLead {
   context: string; // Brief snippet of what they said
 }
 
+// New Result Type for Deep Analysis
+export interface DeepPersonaResult {
+  tags: string[]; // e.g., "Pet Owner", "Luxury Style", "Anxious Mom"
+  visualEvidence: string[]; // NEW: Specific visual cues detected (e.g. "Luxury Bag", "Baby Crib")
+  psychology: {
+    buyingLogic: string; // e.g., "Trusts scientific data", "Impulse buyer"
+    painPoints: string[]; // e.g., "Afraid of side effects"
+    spendingPower: 'High' | 'Medium' | 'Low';
+  };
+  match: {
+    bestProduct: string; // Which of OUR products fits best
+    whyFit: string;
+  };
+  approach: {
+    openingLine: string; // Super personalized opener
+    toneAdvice: string; // e.g., "Be like a big sister", "Be professional data-driven"
+  };
+}
+
 export interface CRMLead extends MinedLead {
   id: string;
   status: 'New' | 'Contacted' | 'Qualified' | 'Lost';
   addedAt: string;
   notes: string;
   tags: string[];
+  deepAnalysis?: DeepPersonaResult; // Store the deep analysis here
 }
 
 export interface LeadMiningResult {
