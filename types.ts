@@ -36,7 +36,6 @@ export enum AppView {
 export type Language = 'en' | 'zh';
 
 // Market Analysis Types
-// Removed Classification, Competitors, Sentiment as requested
 export type AnalysisMode = 'Needs' | 'Comments' | 'Identity' | 'LeadMining';
 
 export interface NeedsAnalysisResult {

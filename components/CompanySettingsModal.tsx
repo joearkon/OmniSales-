@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { CompanyProfile, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
-import { Save, Building2, Package, Star, Briefcase, X, FileText, Image as ImageIcon, Check, Upload, Trash2, Award, Gauge, Globe, Trophy, Link as LinkIcon } from 'lucide-react';
+import { Save, Building2, Package, Star, Briefcase, X, FileText, Image as ImageIcon, Check, Upload, Trash2, Award, Gauge, Globe, Trophy, Link as LinkIcon, Download } from 'lucide-react';
 
 interface CompanySettingsModalProps {
   isOpen: boolean;
@@ -17,6 +17,7 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({ isOp
   const [activeTab, setActiveTab] = useState<'basic' | 'knowledge'>('basic');
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const configInputRef = useRef<HTMLInputElement>(null);
   
   const t = TRANSLATIONS[lang].settings;
 
@@ -57,6 +58,44 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({ isOp
     onSave(formData);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleExport = () => {
+      const json = JSON.stringify(formData, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `factory_brain_config_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+          try {
+              const content = evt.target?.result as string;
+              const data = JSON.parse(content);
+              // Basic validation check
+              if (typeof data === 'object' && data !== null) {
+                  setFormData(prev => ({ ...prev, ...data }));
+                  alert(t.importSuccess);
+              } else {
+                  throw new Error("Invalid format");
+              }
+          } catch (err) {
+              console.error(err);
+              alert(t.importError);
+          } finally {
+              if (configInputRef.current) configInputRef.current.value = '';
+          }
+      };
+      reader.readAsText(file);
   };
 
   return (
@@ -286,17 +325,47 @@ export const CompanySettingsModal: React.FC<CompanySettingsModalProps> = ({ isOp
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2 shrink-0">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-200 rounded-lg font-medium">
-                Cancel
-            </button>
-            <button 
-                onClick={handleSubmit} 
-                className={`px-6 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2 transition-all ${saved ? 'bg-green-600' : 'bg-indigo-600 hover:bg-indigo-700'}`}
-            >
-                {saved ? <Check size={16} /> : <Save size={16} />}
-                {saved ? t.saved : t.save}
-            </button>
+        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
+            {/* Import/Export Tools */}
+            <div className="flex gap-2">
+                <input 
+                    type="file" 
+                    accept=".json" 
+                    ref={configInputRef} 
+                    className="hidden" 
+                    onChange={handleImport} 
+                />
+                <button 
+                    type="button" 
+                    onClick={() => configInputRef.current?.click()} 
+                    className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200"
+                    title={t.import}
+                >
+                    <Upload size={18} />
+                </button>
+                <button 
+                    type="button" 
+                    onClick={handleExport}
+                    className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200"
+                    title={t.export}
+                >
+                    <Download size={18} />
+                </button>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+                <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-200 rounded-lg font-medium">
+                    Cancel
+                </button>
+                <button 
+                    onClick={handleSubmit} 
+                    className={`px-6 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2 transition-all ${saved ? 'bg-green-600' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                >
+                    {saved ? <Check size={16} /> : <Save size={16} />}
+                    {saved ? t.saved : t.save}
+                </button>
+            </div>
         </div>
 
       </div>

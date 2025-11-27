@@ -249,7 +249,8 @@ export const generateStrategicOutreach = async (lead: MinedLead, lang: Language,
   const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-2.5-flash";
 
-  const isUser = lead.valueCategory.includes('User');
+  // KOLs are ALWAYS considered High Priority regardless of explicit valueCategory
+  const isPriorityLead = lead.leadType === 'KOL' || lead.valueCategory === 'High Value User' || lead.valueCategory === 'Potential Partner';
 
   let profileContext = "";
   if (profile && (profile.name || profile.products)) {
@@ -270,22 +271,33 @@ export const generateStrategicOutreach = async (lead: MinedLead, lang: Language,
         ${profile.knowledgeBase ? `Extended Knowledge Base: ${profile.knowledgeBase}` : ''}
         
         **CRITICAL INSTRUCTION:**
-        When generating scripts and recommendations, you MUST specifically mention the company's products/advantages that solve this specific lead's problem. 
-        - If the lead is a brand/distributor, mention Capacity, Certifications, and Key Clients.
-        - If the lead is a user, mention Safety (Certifications) and Product efficacy.
-        Do not use generic phrases. Use the provided "Advantages" and "Products" to make the pitch convincing.
+        Mention specific company advantages only if relevant to the lead's problem.
       `;
   }
 
   const promptText = `
     Sales expert context. Lead: ${lead.accountName} on ${lead.platform}.
-    Reason: ${lead.reason}. Type: ${lead.valueCategory}.
+    Reason: ${lead.reason}. Type: ${lead.leadType}. Value: ${lead.valueCategory}. Content: "${lead.context}".
     
     ${profileContext}
 
-    Task 1: 3 Scripts (Friendly, Professional, Concise).
-    Task 2: ${isUser ? 'Problem Diagnosis & Tips' : 'Private Domain Conversion Formula'}.
+    **TASK RULES:**
     
+    CASE A: IF Lead is PRIORITY (KOL, High Value User, Potential Partner):
+    1. **Diagnosis:** Provide a detailed professional problem diagnosis, nursing advice, and product recommendation.
+    2. **Scripts:** Provide 3 distinct scripts (Friendly, Professional, Concise).
+       - Tone: Professional, authoritative, building partnership.
+       - KOL Special: If KOL, focus on "Resource Complementarity" and "Sample Evaluation".
+
+    CASE B: IF Lead is STANDARD (Medium Value User, Low Value User) AND NOT KOL:
+    1. **Diagnosis:** Set to NULL (Do not generate diagnosis/advice to save time).
+    2. **Scripts:** Provide 3 simplified, casual scripts.
+       - **LENGTH CONSTRAINT: STRICTLY UNDER 30 CHARACTERS.** (Chinese characters).
+       - Tone: Casual, "Netizen style" (e.g. "Try herbal gel, it works!"), avoid robotic sales talk.
+       - Goal: Quick interaction/Ice breaking.
+
+    Is this lead Priority? ${isPriorityLead ? 'YES' : 'NO'}.
+
     Language: ${lang === 'zh' ? 'Simplified Chinese' : 'English'}.
   `;
 

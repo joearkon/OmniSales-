@@ -82,7 +82,11 @@ export const TRANSLATIONS = {
         upload: "Asset Upload",
         uploadDesc: "Upload factory photos, certificates, or product images (Max 5)",
         save: "Save Configuration",
-        saved: "Saved!"
+        saved: "Saved!",
+        import: "Import Config",
+        export: "Export Config",
+        importSuccess: "Configuration loaded successfully!",
+        importError: "Invalid configuration file."
     },
     crm: {
       title: "CRM Lead Management",
@@ -280,7 +284,11 @@ export const TRANSLATIONS = {
         upload: "资产上传",
         uploadDesc: "上传工厂实景、资质证书或产品图 (最多5张)",
         save: "保存配置",
-        saved: "已保存！"
+        saved: "已保存！",
+        import: "导入配置",
+        export: "导出配置",
+        importSuccess: "配置加载成功！",
+        importError: "无效的配置文件。"
     },
     crm: {
       title: "CRM 客户管理看板",
