@@ -105,6 +105,16 @@ export interface CompanyProfile {
   products: string; // e.g., "Private Care Gel, Probiotic Wash"
   advantages: string; // e.g., "Low MOQ, FDA Certified, 24h Sampling"
   policy: string; // e.g., "MOQ 500pcs, Free Design"
+  
+  // Enriched Fields
+  certifications?: string; // e.g. "ISO9001, GMPC, FDA"
+  capacity?: string; // e.g. "300k units/day"
+  targetMarkets?: string; // e.g. "North America, Domestic E-commerce"
+  keyClients?: string; // e.g. "Served 50+ Top Brands"
+  website?: string;
+
+  knowledgeBase?: string; // Long text for detailed company info
+  images?: string[]; // Base64 strings for factory photos/certs
 }
 
 export type AnalysisResult = 

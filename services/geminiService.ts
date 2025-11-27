@@ -260,13 +260,24 @@ export const generateStrategicOutreach = async (lead: MinedLead, lang: Language,
         Your Advantages: ${profile.advantages}
         Your Policy: ${profile.policy}
         
+        **FACTORY STRENGTHS:**
+        - Certifications: ${profile.certifications || 'Standard'}
+        - Capacity: ${profile.capacity || 'Flexible'}
+        - Target Markets: ${profile.targetMarkets || 'Global'}
+        - Key Clients/Success Stories: ${profile.keyClients || 'Various Brands'}
+        - Website: ${profile.website || ''}
+
+        ${profile.knowledgeBase ? `Extended Knowledge Base: ${profile.knowledgeBase}` : ''}
+        
         **CRITICAL INSTRUCTION:**
         When generating scripts and recommendations, you MUST specifically mention the company's products/advantages that solve this specific lead's problem. 
+        - If the lead is a brand/distributor, mention Capacity, Certifications, and Key Clients.
+        - If the lead is a user, mention Safety (Certifications) and Product efficacy.
         Do not use generic phrases. Use the provided "Advantages" and "Products" to make the pitch convincing.
       `;
   }
 
-  const prompt = `
+  const promptText = `
     Sales expert context. Lead: ${lead.accountName} on ${lead.platform}.
     Reason: ${lead.reason}. Type: ${lead.valueCategory}.
     
@@ -278,9 +289,21 @@ export const generateStrategicOutreach = async (lead: MinedLead, lang: Language,
     Language: ${lang === 'zh' ? 'Simplified Chinese' : 'English'}.
   `;
 
+  const contentParts: any[] = [];
+  
+  // Add company images if available (Visual RAG)
+  if (profile && profile.images && profile.images.length > 0) {
+      profile.images.forEach(base64String => {
+         const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
+         contentParts.push({ inlineData: { mimeType: "image/jpeg", data: base64Data } });
+      });
+  }
+  
+  contentParts.push({ text: promptText });
+
   const response = await ai.models.generateContent({
     model: modelId,
-    contents: prompt,
+    contents: { parts: contentParts },
     config: { responseMimeType: "application/json", responseSchema: strategicOutreachSchema }
   });
 
