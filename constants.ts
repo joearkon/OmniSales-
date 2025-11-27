@@ -1,7 +1,7 @@
 
 import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
-export const APP_VERSION = 'v1.2.6';
+export const APP_VERSION = 'v1.3.2';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
@@ -55,10 +55,11 @@ export const TRANSLATIONS = {
         desc: "Feed your company info to AI for personalized outreach scripts.",
         tabs: {
             basic: "Basic Info",
+            products: "Product Library",
             knowledge: "Knowledge Base"
         },
         name: "Factory/Company Name",
-        products: "Core Products",
+        products: "Core Products Summary",
         productsPlaceholder: "e.g., Private Care Gel, Probiotic Wash, Tightening Mask...",
         advantages: "Core Advantages (USPs)",
         advantagesPlaceholder: "e.g., FDA Certified, 100k Clean Room, Patented Formula...",
@@ -76,6 +77,14 @@ export const TRANSLATIONS = {
         clientsPlaceholder: "e.g., Served 50+ Amazon Top Sellers...",
         website: "Website",
         websitePlaceholder: "e.g., www.omnifactory.com",
+
+        // Product Library
+        addProduct: "Add Product",
+        prodName: "Product Name",
+        prodSKU: "SKU / Model",
+        prodPoints: "Selling Points / Features",
+        prodMOQ: "MOQ",
+        noProducts: "No products added yet. Add specific products for precise AI recommendations.",
 
         knowledgeBase: "Extended Knowledge (Manuals/Docs)",
         knowledgePlaceholder: "Paste your product manuals, brand story, or detailed certificates here...",
@@ -282,10 +291,11 @@ export const TRANSLATIONS = {
         desc: "投喂您的工厂/公司信息，AI 将为您生成专属的“带货”话术。",
         tabs: {
             basic: "基本信息",
+            products: "产品库 (Product Library)",
             knowledge: "扩展知识库"
         },
         name: "工厂/公司名称",
-        products: "核心产品线",
+        products: "核心产品线摘要",
         productsPlaceholder: "例如：私密凝胶、益生菌洗液、紧致贴膜...",
         advantages: "核心优势 (USP)",
         advantagesPlaceholder: "例如：FDA认证、十万级净化车间、独家草本配方...",
@@ -303,6 +313,14 @@ export const TRANSLATIONS = {
         clientsPlaceholder: "例如：服务过50+亚马逊Top卖家，国内某知名连锁...",
         website: "公司官网",
         websitePlaceholder: "例如：www.omnifactory.com",
+
+        // Product Library
+        addProduct: "添加产品",
+        prodName: "产品名称",
+        prodSKU: "SKU / 规格型号",
+        prodPoints: "核心卖点 (AI参考)",
+        prodMOQ: "起订量",
+        noProducts: "暂无产品。请添加具体产品以便 AI 进行精准推荐。",
 
         knowledgeBase: "扩展知识 (手册/文档)",
         knowledgePlaceholder: "在此粘贴您的详细产品手册、品牌故事或资质证书描述...",

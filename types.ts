@@ -119,9 +119,18 @@ export interface StrategicOutreachResult {
   privateDomainTip: string;
 }
 
+export interface Product {
+    id: string;
+    name: string;
+    sku: string;
+    sellingPoints: string;
+    moq: string;
+}
+
 export interface CompanyProfile {
   name: string;
   products: string; // e.g., "Private Care Gel, Probiotic Wash"
+  productsList?: Product[]; // Structured Product Library
   advantages: string; // e.g., "Low MOQ, FDA Certified, 24h Sampling"
   policy: string; // e.g., "MOQ 500pcs, Free Design"
   
