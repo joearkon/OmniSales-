@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useMemo } from 'react';
 import { ANALYSIS_MODES, TRANSLATIONS } from '../constants';
-import { AnalysisMode, Language, AnalysisResult, MinedLead, StrategicOutreachResult } from '../types';
+import { AnalysisMode, Language, AnalysisResult, MinedLead, StrategicOutreachResult, CompanyProfile } from '../types';
 import { analyzeMarketData, generateStrategicOutreach } from '../services/geminiService';
 import { Sparkles, Loader2, AlertTriangle, Image as ImageIcon, X, Target, Download, FileSpreadsheet, Clock, Filter, Info, LayoutGrid, List as ListIcon, Check, UserPlus, Signal } from 'lucide-react';
 
@@ -9,9 +9,10 @@ interface MarketAnalyzerProps {
   lang: Language;
   onAddToCRM: (lead: MinedLead) => void;
   crmLeads: string[];
+  companyProfile: CompanyProfile;
 }
 
-export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM, crmLeads }) => {
+export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM, crmLeads, companyProfile }) => {
   const [text, setText] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [mode, setMode] = useState<AnalysisMode>('LeadMining');
@@ -230,7 +231,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
 
     setStrategyLoading(prev => ({ ...prev, [index]: true }));
     try {
-      const strategy = await generateStrategicOutreach(lead, lang);
+      const strategy = await generateStrategicOutreach(lead, lang, companyProfile);
       setStrategies(prev => ({ ...prev, [index]: strategy }));
       setExpandedLeads(prev => ({ ...prev, [index]: true }));
     } catch (err) {

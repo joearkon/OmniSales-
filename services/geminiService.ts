@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult } from "../types";
+import { Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult, CompanyProfile } from "../types";
 
 // Helper to reliably get API Key across different environments (Vite, Next, Create React App, etc.)
 const getApiKey = (): string => {
@@ -242,7 +242,7 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
   return { mode: mode, data: JSON.parse(jsonText) } as AnalysisResult;
 };
 
-export const generateStrategicOutreach = async (lead: MinedLead, lang: Language): Promise<StrategicOutreachResult> => {
+export const generateStrategicOutreach = async (lead: MinedLead, lang: Language, profile?: CompanyProfile): Promise<StrategicOutreachResult> => {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("API Key is missing.");
 
@@ -251,10 +251,27 @@ export const generateStrategicOutreach = async (lead: MinedLead, lang: Language)
 
   const isUser = lead.valueCategory.includes('User');
 
+  let profileContext = "";
+  if (profile && (profile.name || profile.products)) {
+      profileContext = `
+        **YOUR IDENTITY / COMPANY CONTEXT:**
+        You are representing: ${profile.name || 'Our Factory'}
+        Your Core Products: ${profile.products || 'Private Care Products'}
+        Your Advantages: ${profile.advantages}
+        Your Policy: ${profile.policy}
+        
+        **CRITICAL INSTRUCTION:**
+        When generating scripts and recommendations, you MUST specifically mention the company's products/advantages that solve this specific lead's problem. 
+        Do not use generic phrases. Use the provided "Advantages" and "Products" to make the pitch convincing.
+      `;
+  }
+
   const prompt = `
     Sales expert context. Lead: ${lead.accountName} on ${lead.platform}.
     Reason: ${lead.reason}. Type: ${lead.valueCategory}.
     
+    ${profileContext}
+
     Task 1: 3 Scripts (Friendly, Professional, Concise).
     Task 2: ${isUser ? 'Problem Diagnosis & Tips' : 'Private Domain Conversion Formula'}.
     

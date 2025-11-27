@@ -1,7 +1,7 @@
 
 import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
-export const APP_VERSION = 'v1.2.2';
+export const APP_VERSION = 'v1.2.3';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
@@ -49,6 +49,19 @@ export const TRANSLATIONS = {
       generatedAt: "Generated at",
       selectAll: "Select All",
       copyInfo: "Copy Info"
+    },
+    settings: {
+        title: "Factory Brain Settings",
+        desc: "Feed your company info to AI for personalized outreach scripts.",
+        name: "Factory/Company Name",
+        products: "Core Products",
+        productsPlaceholder: "e.g., Private Care Gel, Probiotic Wash, Tightening Mask...",
+        advantages: "Core Advantages (USPs)",
+        advantagesPlaceholder: "e.g., FDA Certified, 100k Clean Room, Patented Formula...",
+        policy: "Cooperation Policy",
+        policyPlaceholder: "e.g., Low MOQ (500pcs), Free Packaging Design, 3-day Sampling...",
+        save: "Save Configuration",
+        saved: "Saved!"
     },
     crm: {
       title: "CRM Lead Management",
@@ -213,6 +226,19 @@ export const TRANSLATIONS = {
       generatedAt: "生成时间",
       selectAll: "全选",
       copyInfo: "复制信息"
+    },
+    settings: {
+        title: "工厂大脑设置 (Factory Brain)",
+        desc: "投喂您的工厂/公司信息，AI 将为您生成专属的“带货”话术。",
+        name: "工厂/公司名称",
+        products: "核心产品线",
+        productsPlaceholder: "例如：私密凝胶、益生菌洗液、紧致贴膜...",
+        advantages: "核心优势 (USP)",
+        advantagesPlaceholder: "例如：FDA认证、十万级净化车间、独家草本配方...",
+        policy: "合作/招商政策",
+        policyPlaceholder: "例如：低起订量(500支起)、免费设计包装、3天出样...",
+        save: "保存配置",
+        saved: "已保存！"
     },
     crm: {
       title: "CRM 客户管理看板",

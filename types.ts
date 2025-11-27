@@ -100,6 +100,13 @@ export interface StrategicOutreachResult {
   privateDomainTip: string;
 }
 
+export interface CompanyProfile {
+  name: string;
+  products: string; // e.g., "Private Care Gel, Probiotic Wash"
+  advantages: string; // e.g., "Low MOQ, FDA Certified, 24h Sampling"
+  policy: string; // e.g., "MOQ 500pcs, Free Design"
+}
+
 export type AnalysisResult = 
   | { mode: 'Needs'; data: NeedsAnalysisResult }
   | { mode: 'Comments'; data: CommentAnalysisResult }
