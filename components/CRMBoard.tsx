@@ -1,9 +1,8 @@
 
 import React, { useRef, useState, useMemo } from 'react';
-import { CRMLead, Language, DeepPersonaResult, CompanyProfile, ActivityLog } from '../types';
+import { CRMLead, Language } from '../types';
 import { CRM_STATUSES, TRANSLATIONS } from '../constants';
-import { Trash2, Edit2, User, Factory, Smartphone, MessageSquare, Download, Upload, AlertCircle, Tag, Plus, X, Check, Search, PieChart, TrendingUp, Users, CheckSquare, Square, Copy, ArrowUpDown, Microscope, Brain, Zap, Phone, Mail, FileText, Calendar, Clock } from 'lucide-react';
-import { DeepAnalysisModal } from './DeepAnalysisModal';
+import { Trash2, Edit2, User, Factory, Smartphone, MessageSquare, Download, Upload, AlertCircle, Tag, Plus, X, Check, Search, PieChart, TrendingUp, Users, CheckSquare, Square, Copy, ArrowUpDown } from 'lucide-react';
 
 interface CRMBoardProps {
   leads: CRMLead[];
@@ -11,13 +10,12 @@ interface CRMBoardProps {
   onDelete: (id: string) => void;
   onImport: (importedLeads: CRMLead[]) => void;
   lang: Language;
-  companyProfile?: CompanyProfile;
 }
 
-export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfile }> = ({ leads, onUpdate, onDelete, onImport, lang, companyProfile }) => {
+export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, onImport, lang }) => {
   const t = TRANSLATIONS[lang];
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [timelineNote, setTimelineNote] = useState('');
+  const [editNotes, setEditNotes] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState<'dateDesc' | 'valueHigh' | 'outreach'>('dateDesc');
@@ -33,9 +31,6 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
   // Tagging State (Single Item)
   const [addingTagId, setAddingTagId] = useState<string | null>(null);
   const [newTagText, setNewTagText] = useState('');
-
-  // Deep Analysis State
-  const [deepAnalyzeLead, setDeepAnalyzeLead] = useState<CRMLead | null>(null);
 
   // --- Statistics ---
   const stats = useMemo(() => {
@@ -81,14 +76,17 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
             const dateB = getDate(b);
             const diff = dateB - dateA; // Newest first
             if (diff !== 0) return diff;
+            // Secondary sort: Value
             return getValueRank(b.valueCategory) - getValueRank(a.valueCategory);
         } else if (sortOption === 'valueHigh') {
             const valDiff = getValueRank(b.valueCategory) - getValueRank(a.valueCategory);
             if (valDiff !== 0) return valDiff;
+            // Secondary sort: Date
             return getDate(b) - getDate(a);
         } else if (sortOption === 'outreach') {
             const outDiff = getOutreachRank(b.outreachStatus) - getOutreachRank(a.outreachStatus);
             if (outDiff !== 0) return outDiff;
+            // Secondary sort: Value
             return getValueRank(b.valueCategory) - getValueRank(a.valueCategory);
         }
         return 0;
@@ -100,30 +98,13 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
   // --- Handlers ---
 
   const handleStartEdit = (lead: CRMLead) => {
-    setEditingId(lead.id === editingId ? null : lead.id);
-    setTimelineNote('');
+    setEditingId(lead.id);
+    setEditNotes(lead.notes || '');
   };
 
-  const handleAddTimelineLog = (id: string, type: 'Call' | 'WeChat' | 'Email' | 'Note') => {
-      const lead = leads.find(l => l.id === id);
-      if (!lead) return;
-
-      const newLog: ActivityLog = {
-          id: `log-${Date.now()}`,
-          type,
-          content: timelineNote || 'Activity logged',
-          date: new Date().toISOString()
-      };
-
-      onUpdate(id, { 
-          timeline: [newLog, ...(lead.timeline || [])],
-          status: type === 'Call' || type === 'WeChat' ? 'Contacted' : lead.status
-      });
-      setTimelineNote('');
-  };
-
-  const handleUpdateFollowUp = (id: string, date: string) => {
-      onUpdate(id, { nextFollowUp: date });
+  const handleSaveEdit = (id: string) => {
+    onUpdate(id, { notes: editNotes });
+    setEditingId(null);
   };
 
   const handleAddTag = (id: string, tags: string[]) => {
@@ -211,7 +192,7 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
     
     const rows = leads.map(l => [
         l.id, l.accountName, l.platform, l.leadType, l.valueCategory, 
-        l.status, l.notes, (l.tags || []).join(';'), l.context, l.addedAt, l.nextFollowUp || ''
+        l.status, l.notes, (l.tags || []).join(';'), l.context, l.addedAt
     ].map(escape).join(','));
     
     const csv = [headers.join(','), ...rows].join('\n');
@@ -258,9 +239,7 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
                             addedAt: clean(row[9]) || new Date().toISOString(),
                             reason: '',
                             suggestedAction: '',
-                            outreachStatus: 'Unknown',
-                            timeline: [],
-                            nextFollowUp: clean(row[10]) || undefined
+                            outreachStatus: 'Unknown'
                         });
                      }
                  }
@@ -276,22 +255,6 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
         }
     };
     reader.readAsText(file);
-  };
-
-  const saveDeepAnalysis = (id: string, result: DeepPersonaResult) => {
-      onUpdate(id, { deepAnalysis: result });
-  };
-
-  const isOverdue = (dateStr?: string) => {
-      if (!dateStr) return false;
-      const today = new Date().toISOString().slice(0, 10);
-      return dateStr < today;
-  };
-
-  const isToday = (dateStr?: string) => {
-      if (!dateStr) return false;
-      const today = new Date().toISOString().slice(0, 10);
-      return dateStr === today;
   };
 
   return (
@@ -449,13 +412,9 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
             {processedLeads.map(lead => {
                 const statusConfig = CRM_STATUSES[lead.status];
                 const isSelected = selectedIds.has(lead.id);
-                const hasDeepAnalysis = !!lead.deepAnalysis;
-                const isTimelineOpen = editingId === lead.id;
-                const overdue = isOverdue(lead.nextFollowUp);
-                const dueToday = isToday(lead.nextFollowUp);
 
                 return (
-                <div key={lead.id} className={`bg-white border rounded-xl p-5 shadow-sm transition-all group ${isSelected ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50/10' : overdue ? 'border-red-200' : 'border-slate-200 hover:border-indigo-200'}`}>
+                <div key={lead.id} className={`bg-white border rounded-xl p-5 shadow-sm transition-all group ${isSelected ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-50/10' : 'border-slate-200 hover:border-indigo-200'}`}>
                     <div className="flex gap-4">
                         {/* Checkbox */}
                         <div className="pt-1">
@@ -472,31 +431,25 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
                                     lead.leadType === 'KOL' ? <Smartphone size={18} className="text-rose-600"/> :
                                     <User size={18} className="text-green-600"/>}
                                     
-                                    <span className="font-bold text-lg text-slate-900 break-words">{lead.accountName}</span>
+                                    <span className="font-bold text-lg text-slate-900">{lead.accountName}</span>
                                     
                                     <span className="text-xs bg-slate-100 px-2 py-0.5 rounded-full text-slate-500 border border-slate-200">{lead.platform}</span>
                                     
                                     <button onClick={() => handleCopyLeadInfo(lead)} className="text-slate-300 hover:text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" title={t.common.copyInfo}>
                                         <Copy size={14} />
                                     </button>
-                                    
-                                    {hasDeepAnalysis && (
-                                        <span className="flex items-center gap-1 text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full border border-purple-100 font-medium">
-                                            <Brain size={12} /> {t.crm.analyzed}
-                                        </span>
-                                    )}
-
-                                    {lead.nextFollowUp && (
-                                        <span className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium ${overdue ? 'bg-red-50 text-red-600 border-red-200' : dueToday ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-                                            <Calendar size={12} /> {lead.nextFollowUp}
-                                        </span>
-                                    )}
                                 </div>
                                 <p className="text-sm text-slate-600 mb-3 bg-slate-50 p-2 rounded border border-slate-100 italic">"{lead.context}"</p>
                                 
-                                {/* Quick Actions Row */}
+                                {/* Tags */}
                                 <div className="flex flex-wrap items-center gap-2 mb-3">
-                                    {/* Add Tag Action */}
+                                    {(lead.tags || []).map(tag => (
+                                        <span key={tag} className="bg-white text-indigo-700 text-xs px-2 py-1 rounded-full border border-indigo-100 flex items-center gap-1 shadow-sm">
+                                            <Tag size={10} /> {tag}
+                                            <button onClick={() => handleRemoveTag(lead.id, lead.tags, tag)} className="hover:text-red-500"><X size={10} /></button>
+                                        </span>
+                                    ))}
+                                    
                                     {addingTagId === lead.id ? (
                                         <div className="flex items-center gap-1 animate-in fade-in">
                                             <input 
@@ -514,123 +467,40 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
                                     ) : (
                                         <button 
                                             onClick={() => setAddingTagId(lead.id)}
-                                            className="text-xs text-slate-500 hover:text-indigo-600 border border-slate-200 bg-slate-50 hover:bg-white hover:border-indigo-200 rounded-md px-2 py-1 flex items-center gap-1 transition-all"
+                                            className="text-xs text-slate-400 hover:text-indigo-600 border border-dashed border-slate-300 rounded px-2 py-0.5 flex items-center gap-1 hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
                                         >
-                                            <Plus size={12} /> {t.crm.addTag}
+                                            <Plus size={10} /> {t.crm.addTag}
                                         </button>
                                     )}
-
-                                    {/* Deep Analysis Action */}
-                                    <button 
-                                        onClick={() => setDeepAnalyzeLead(lead)}
-                                        className={`flex items-center justify-center gap-1 text-xs font-medium px-2 py-1 rounded-md border transition-all ${hasDeepAnalysis ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-purple-300 hover:text-purple-600 hover:bg-white'}`}
-                                    >
-                                        <Microscope size={12} /> {t.crm.deepAnalyze}
-                                    </button>
                                 </div>
 
-                                {/* Tags Display */}
-                                {lead.tags && lead.tags.length > 0 && (
-                                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                                        {lead.tags.map(tag => (
-                                            <span key={tag} className="bg-white text-indigo-700 text-xs px-2 py-1 rounded-full border border-indigo-100 flex items-center gap-1 shadow-sm">
-                                                <Tag size={10} /> {tag}
-                                                <button onClick={() => handleRemoveTag(lead.id, lead.tags, tag)} className="hover:text-red-500"><X size={10} /></button>
-                                            </span>
-                                        ))}
+                                {/* Notes */}
+                                {editingId === lead.id ? (
+                                <div className="mt-2 animate-in fade-in">
+                                    <textarea 
+                                    value={editNotes}
+                                    onChange={(e) => setEditNotes(e.target.value)}
+                                    className="w-full p-2 border border-indigo-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder={t.crm.notes}
+                                    rows={3}
+                                    />
+                                    <div className="flex justify-end gap-2 mt-2">
+                                    <button onClick={() => handleSaveEdit(lead.id)} className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 font-medium">{t.crm.save}</button>
                                     </div>
+                                </div>
+                                ) : (
+                                <div className="text-sm text-slate-700 cursor-pointer group/note" onClick={() => handleStartEdit(lead)}>
+                                    <div className="flex items-center gap-2 mb-1 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                                    <MessageSquare size={10} /> {t.crm.notes} <Edit2 size={10} className="opacity-0 group-hover/note:opacity-100 text-indigo-500"/>
+                                    </div>
+                                    <div className="pl-2 border-l-2 border-slate-200 group-hover/note:border-indigo-300 transition-colors">
+                                        {lead.notes ? lead.notes : <span className="italic text-slate-400">{t.crm.emptyNote}</span>}
+                                    </div>
+                                </div>
                                 )}
-
-                                {/* Timeline / Notes Section */}
-                                <div className="text-sm text-slate-700 group/note">
-                                    <div 
-                                        className="flex items-center gap-2 mb-2 text-slate-400 text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-indigo-600"
-                                        onClick={() => handleStartEdit(lead)}
-                                    >
-                                        <Clock size={12} /> {t.crm.notes} 
-                                        <span className="text-[10px] bg-slate-100 px-1 rounded text-slate-500">{lead.timeline?.length || 0}</span>
-                                    </div>
-                                    
-                                    {isTimelineOpen ? (
-                                        <div className="mt-2 bg-slate-50 rounded-lg p-3 border border-slate-200 animate-in fade-in">
-                                            {/* Quick Log Buttons */}
-                                            <div className="flex gap-2 mb-3">
-                                                <button onClick={() => handleAddTimelineLog(lead.id, 'Call')} className="flex-1 bg-white border border-slate-200 hover:border-green-300 hover:bg-green-50 text-slate-600 hover:text-green-700 py-1.5 rounded text-xs flex items-center justify-center gap-1 transition-colors">
-                                                    <Phone size={12} /> {t.crm.timeline.logCall}
-                                                </button>
-                                                <button onClick={() => handleAddTimelineLog(lead.id, 'WeChat')} className="flex-1 bg-white border border-slate-200 hover:border-green-300 hover:bg-green-50 text-slate-600 hover:text-green-700 py-1.5 rounded text-xs flex items-center justify-center gap-1 transition-colors">
-                                                    <MessageSquare size={12} /> {t.crm.timeline.logWechat}
-                                                </button>
-                                                <button onClick={() => handleAddTimelineLog(lead.id, 'Email')} className="flex-1 bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-600 hover:text-blue-700 py-1.5 rounded text-xs flex items-center justify-center gap-1 transition-colors">
-                                                    <Mail size={12} /> {t.crm.timeline.logEmail}
-                                                </button>
-                                            </div>
-                                            
-                                            {/* Input */}
-                                            <div className="flex gap-2 mb-4">
-                                                <input 
-                                                    value={timelineNote}
-                                                    onChange={(e) => setTimelineNote(e.target.value)}
-                                                    className="flex-grow p-2 border border-slate-200 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                    placeholder={t.crm.timeline.placeholder}
-                                                    onKeyDown={(e) => e.key === 'Enter' && handleAddTimelineLog(lead.id, 'Note')}
-                                                />
-                                                <button onClick={() => handleAddTimelineLog(lead.id, 'Note')} className="bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 text-xs font-bold">
-                                                    {t.crm.timeline.add}
-                                                </button>
-                                            </div>
-
-                                            {/* Timeline List */}
-                                            <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-                                                {lead.timeline && lead.timeline.length > 0 ? (
-                                                    lead.timeline.map((log) => (
-                                                        <div key={log.id} className="flex gap-3 text-xs">
-                                                            <div className="flex flex-col items-center">
-                                                                <div className={`w-2 h-2 rounded-full mt-1.5 ${log.type === 'Call' ? 'bg-green-500' : log.type === 'WeChat' ? 'bg-green-600' : 'bg-blue-500'}`}></div>
-                                                                <div className="w-px h-full bg-slate-200 my-1"></div>
-                                                            </div>
-                                                            <div className="pb-2">
-                                                                <div className="flex items-center gap-2 mb-0.5">
-                                                                    <span className="font-bold text-slate-700">{log.type}</span>
-                                                                    <span className="text-slate-400 text-[10px]">{new Date(log.date).toLocaleDateString()} {new Date(log.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                                                </div>
-                                                                <p className="text-slate-600">{log.content}</p>
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="text-center text-slate-400 italic py-2">{t.crm.emptyNote}</div>
-                                                )}
-                                                {/* Fallback to old notes if no timeline */}
-                                                {!lead.timeline && lead.notes && (
-                                                     <div className="flex gap-3 text-xs opacity-70">
-                                                        <div className="w-2 h-2 rounded-full mt-1.5 bg-slate-300"></div>
-                                                        <div>
-                                                            <span className="font-bold text-slate-500">Legacy Note</span>
-                                                            <p className="text-slate-600">{lead.notes}</p>
-                                                        </div>
-                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="pl-2 border-l-2 border-slate-200 group-hover/note:border-indigo-300 transition-colors" onClick={() => handleStartEdit(lead)}>
-                                            {lead.timeline && lead.timeline.length > 0 ? (
-                                                <div className="text-xs text-slate-600">
-                                                    <span className="font-bold">{lead.timeline[0].type}:</span> {lead.timeline[0].content}
-                                                    <span className="text-slate-400 ml-2">({new Date(lead.timeline[0].date).toLocaleDateString()})</span>
-                                                </div>
-                                            ) : lead.notes ? (
-                                                <div className="text-xs text-slate-600">{lead.notes}</div>
-                                            ) : (
-                                                <span className="italic text-slate-400 text-xs">{t.crm.emptyNote}</span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
                             </div>
 
-                            {/* Actions Column (Status, Date & Delete) */}
+                            {/* Actions Column */}
                             <div className="flex flex-col gap-3 min-w-[150px] border-l border-slate-100 pl-4 md:pl-0 md:border-l-0">
                                 <div className="flex flex-col">
                                     <span className="text-xs text-slate-400 font-semibold uppercase mb-1">{t.crm.status}</span>
@@ -643,16 +513,6 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
                                             <option key={s} value={s}>{t.crm.statuses[s.toLowerCase() as keyof typeof t.crm.statuses] || s}</option>
                                         ))}
                                     </select>
-                                </div>
-
-                                <div className="flex flex-col">
-                                    <span className="text-xs text-slate-400 font-semibold uppercase mb-1">{t.crm.timeline.nextFollowUp}</span>
-                                    <input 
-                                        type="date" 
-                                        className={`text-xs border rounded p-1 ${overdue ? 'text-red-600 border-red-200 bg-red-50' : 'text-slate-600 border-slate-200'}`}
-                                        value={lead.nextFollowUp || ''}
-                                        onChange={(e) => handleUpdateFollowUp(lead.id, e.target.value)}
-                                    />
                                 </div>
                                 
                                 <div className="mt-auto flex justify-end">
@@ -673,16 +533,6 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
             </div>
         </div>
       )}
-
-      {/* Deep Analysis Modal */}
-      <DeepAnalysisModal 
-         isOpen={!!deepAnalyzeLead}
-         onClose={() => setDeepAnalyzeLead(null)}
-         lead={deepAnalyzeLead}
-         companyProfile={companyProfile || { name: '', products: '', advantages: '', policy: '' }}
-         lang={lang}
-         onSave={saveDeepAnalysis}
-      />
     </div>
   );
 };

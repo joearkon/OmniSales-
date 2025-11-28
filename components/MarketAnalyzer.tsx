@@ -1,9 +1,9 @@
 
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { ANALYSIS_MODES, TRANSLATIONS } from '../constants';
 import { AnalysisMode, Language, AnalysisResult, MinedLead, StrategicOutreachResult, CompanyProfile } from '../types';
 import { analyzeMarketData, generateStrategicOutreach } from '../services/geminiService';
-import { Sparkles, Loader2, AlertTriangle, Image as ImageIcon, X, Target, Download, FileSpreadsheet, Clock, Filter, Info, LayoutGrid, List as ListIcon, Check, UserPlus, Signal, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sparkles, Loader2, AlertTriangle, Image as ImageIcon, X, Target, Download, FileSpreadsheet, Clock, Filter, Info, LayoutGrid, List as ListIcon, Check, UserPlus, Signal } from 'lucide-react';
 
 interface MarketAnalyzerProps {
   lang: Language;
@@ -32,15 +32,8 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
   const [filterLeadType, setFilterLeadType] = useState<string>('all');
   const [filterPlatform, setFilterPlatform] = useState<string>('all');
   
-  // Sorting State
-  const [sortConfig, setSortConfig] = useState<{ key: keyof MinedLead | 'date', direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
-
   // View State
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
-
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
   const t = TRANSLATIONS[lang];
   const r = t.analysis.results;
@@ -325,49 +318,19 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
         processed = processed.filter(l => l.platform === filterPlatform);
     }
 
-    // Sort Logic
+    // Sort: Date Descending -> Value Priority
+    const priority = { 'High Value User': 0, 'Potential Partner': 1, 'Medium Value User': 2, 'Low Value User': 3 };
+
     return processed.sort((a, b) => {
-        let res = 0;
-        
-        switch(sortConfig.key) {
-            case 'date':
-                const dateA = a.date ? new Date(a.date).getTime() : 0;
-                const dateB = b.date ? new Date(b.date).getTime() : 0;
-                res = dateA - dateB;
-                break;
-            case 'valueCategory':
-                const valPriority = { 'High Value User': 3, 'Potential Partner': 2, 'Medium Value User': 1, 'Low Value User': 0 };
-                res = (valPriority[a.valueCategory] ?? 0) - (valPriority[b.valueCategory] ?? 0);
-                break;
-            case 'outreachStatus':
-                const outreachPriority = { 'Likely Uncontacted': 2, 'Unknown': 1, 'Likely Contacted': 0 };
-                res = (outreachPriority[a.outreachStatus] ?? 0) - (outreachPriority[b.outreachStatus] ?? 0);
-                break;
-            case 'accountName':
-                res = a.accountName.localeCompare(b.accountName);
-                break;
-            case 'leadType':
-                res = a.leadType.localeCompare(b.leadType);
-                break;
-            default:
-                res = 0;
-        }
+        // Primary: Date Descending (Newest first)
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        if (dateB !== dateA) return dateB - dateA;
 
-        if (res === 0) {
-             // Secondary sort: Date Desc
-             const dateA = a.date ? new Date(a.date).getTime() : 0;
-             const dateB = b.date ? new Date(b.date).getTime() : 0;
-             return dateB - dateA;
-        }
-
-        return sortConfig.direction === 'asc' ? res : -res;
+        // Secondary: Value Category
+        return (priority[a.valueCategory] ?? 4) - (priority[b.valueCategory] ?? 4);
     });
-  }, [result, filterTime, filterLeadType, filterPlatform, sortConfig]);
-
-  // Reset pagination when filters or data change
-  useEffect(() => {
-      setCurrentPage(1);
-  }, [filterTime, filterLeadType, filterPlatform, sortConfig, text, result]);
+  }, [result, filterTime, filterLeadType, filterPlatform]);
 
   const generateCSV = (res: AnalysisResult, sortedLeads?: MinedLead[]): string => {
     let headers: string[] = [];
@@ -381,11 +344,11 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
 
     if (res.mode === 'LeadMining') {
         headers = [r.platform, r.account, r.type, r.valueCategory, r.outreachStatus, r.date, r.reason, r.action, 'Context'];
-        // Use filtered leads if available, otherwise raw result
+        // Use sortedLeads if available (WYSIWYG), otherwise fallback to raw data
         const source = sortedLeads || res.data.leads;
         rows = source.map(l => [l.platform, l.accountName, l.leadType, l.valueCategory, l.outreachStatus, l.date || '', l.reason, l.suggestedAction, l.context]);
     } else {
-        headers = [t.analysis.csvHeaders.category, t.analysis.csvHeaders.item, t.analysis.csvHeaders.detail];
+        headers = [r.category, r.item, r.detail];
         if (res.mode === 'Identity') {
            rows = res.data.map(i => [i.platform, i.name, `${i.identity} - ${i.description}`]);
         } else if (res.mode === 'Needs') {
@@ -406,29 +369,6 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
 
     return [headers.join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
   };
-
-  const handleSort = (key: keyof MinedLead | 'date') => {
-      let newDirection: 'asc' | 'desc' = 'asc';
-      if (sortConfig.key === key) {
-          newDirection = sortConfig.direction === 'asc' ? 'desc' : 'asc';
-      } else {
-          // Default desc for value/date/outreach
-          if (key === 'date' || key === 'valueCategory' || key === 'outreachStatus') newDirection = 'desc';
-      }
-      setSortConfig({ key, direction: newDirection });
-  };
-
-  const renderSortIcon = (key: string) => {
-      if (sortConfig.key !== key) return <ArrowUpDown size={14} className="ml-1 text-slate-300 inline" />;
-      return sortConfig.direction === 'asc' 
-          ? <ArrowUp size={14} className="ml-1 text-indigo-600 inline" />
-          : <ArrowDown size={14} className="ml-1 text-indigo-600 inline" />;
-  };
-
-  // Pagination Logic
-  const totalItems = sortedAndFilteredLeads.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const paginatedLeads = sortedAndFilteredLeads.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const renderResults = () => {
     if (!result) return null;
@@ -501,7 +441,6 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                 </div>
 
                 <button onClick={() => {
-                     // Pass full filtered list to export, not paginated slice
                      const csv = generateCSV(result, sortedAndFilteredLeads);
                      downloadFile(csv, 'Analysis_Report.csv', 'csv');
                 }} className="btn-sm-outline flex items-center gap-1 px-3 py-1.5 border rounded hover:bg-slate-50 text-sm">
@@ -512,8 +451,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
 
           {viewMode === 'card' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {paginatedLeads.map((lead, i) => {
-                  const idx = sortedAndFilteredLeads.indexOf(lead); // Key tracking
+                {sortedAndFilteredLeads.map((lead, idx) => {
                   const strat = strategies[idx];
                   const isExpanded = expandedLeads[idx];
                   const isLoadingStrat = strategyLoading[idx];
@@ -641,28 +579,17 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                     <table className="w-full text-sm text-left">
                         <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                             <tr>
-                                <th className="p-4 whitespace-nowrap cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('date')}>
-                                    {r.date} {renderSortIcon('date')}
-                                </th>
-                                <th className="p-4 whitespace-nowrap cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('accountName')}>
-                                    {r.account} {renderSortIcon('accountName')}
-                                </th>
-                                <th className="p-4 whitespace-nowrap cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('leadType')}>
-                                    {r.type} {renderSortIcon('leadType')}
-                                </th>
-                                <th className="p-4 whitespace-nowrap cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('valueCategory')}>
-                                    {r.valueCategory} {renderSortIcon('valueCategory')}
-                                </th>
-                                <th className="p-4 whitespace-nowrap cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('outreachStatus')}>
-                                    {r.outreachStatus} {renderSortIcon('outreachStatus')}
-                                </th>
+                                <th className="p-4 whitespace-nowrap">{r.date}</th>
+                                <th className="p-4 whitespace-nowrap">{r.account}</th>
+                                <th className="p-4 whitespace-nowrap">{r.type}</th>
+                                <th className="p-4 whitespace-nowrap">{r.valueCategory}</th>
+                                <th className="p-4 whitespace-nowrap">{r.outreachStatus}</th>
                                 <th className="p-4">{r.action}</th>
                                 <th className="p-4 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {paginatedLeads.map((lead, i) => {
-                                const idx = sortedAndFilteredLeads.indexOf(lead);
+                            {sortedAndFilteredLeads.map((lead, idx) => {
                                 const strat = strategies[idx];
                                 const isExpanded = expandedLeads[idx];
                                 const isLoadingStrat = strategyLoading[idx];
@@ -765,32 +692,6 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                             })}
                         </tbody>
                     </table>
-                  </div>
-              </div>
-          )}
-
-          {/* Pagination Footer */}
-          {totalItems > itemsPerPage && (
-              <div className="flex justify-between items-center mt-6 pt-4 border-t border-slate-100 animate-in fade-in">
-                  <span className="text-xs text-slate-500">
-                      Showing {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
-                  </span>
-                  <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-500"
-                      >
-                          <ChevronLeft size={16} />
-                      </button>
-                      <span className="text-xs font-medium text-slate-700">Page {currentPage} of {totalPages || 1}</span>
-                      <button 
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages || totalPages === 0}
-                        className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-500"
-                      >
-                          <ChevronRight size={16} />
-                      </button>
                   </div>
               </div>
           )}

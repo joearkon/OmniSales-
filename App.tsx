@@ -198,8 +198,7 @@ const App: React.FC = () => {
               onUpdate={updateCRMLead} 
               onDelete={deleteCRMLead} 
               onImport={handleImportCRMLeads}
-              lang={lang}
-              companyProfile={companyProfile}
+              lang={lang} 
            />
       </div>
 

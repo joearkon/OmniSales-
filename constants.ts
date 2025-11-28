@@ -1,7 +1,7 @@
 
 import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
-export const APP_VERSION = 'v1.4.0';
+export const APP_VERSION = 'v1.2.4';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
@@ -55,11 +55,10 @@ export const TRANSLATIONS = {
         desc: "Feed your company info to AI for personalized outreach scripts.",
         tabs: {
             basic: "Basic Info",
-            products: "Product Library",
             knowledge: "Knowledge Base"
         },
         name: "Factory/Company Name",
-        products: "Core Products Summary",
+        products: "Core Products",
         productsPlaceholder: "e.g., Private Care Gel, Probiotic Wash, Tightening Mask...",
         advantages: "Core Advantages (USPs)",
         advantagesPlaceholder: "e.g., FDA Certified, 100k Clean Room, Patented Formula...",
@@ -78,24 +77,12 @@ export const TRANSLATIONS = {
         website: "Website",
         websitePlaceholder: "e.g., www.omnifactory.com",
 
-        // Product Library
-        addProduct: "Add Product",
-        prodName: "Product Name",
-        prodSKU: "SKU / Model",
-        prodPoints: "Selling Points / Features",
-        prodMOQ: "MOQ",
-        noProducts: "No products added yet. Add specific products for precise AI recommendations.",
-
         knowledgeBase: "Extended Knowledge (Manuals/Docs)",
         knowledgePlaceholder: "Paste your product manuals, brand story, or detailed certificates here...",
         upload: "Asset Upload",
         uploadDesc: "Upload factory photos, certificates, or product images (Max 5)",
         save: "Save Configuration",
-        saved: "Saved!",
-        import: "Import Config",
-        export: "Export Config",
-        importSuccess: "Configuration loaded successfully!",
-        importError: "Invalid configuration file."
+        saved: "Saved!"
     },
     crm: {
       title: "CRM Lead Management",
@@ -126,8 +113,8 @@ export const TRANSLATIONS = {
         valueHigh: "Value (High to Low)",
         outreach: "Outreach (Opp. First)"
       },
-      notes: "Timeline & Notes",
-      emptyNote: "No activity yet.",
+      notes: "Notes",
+      emptyNote: "Click to add private notes...",
       searchPlaceholder: "Search leads, notes, tags...",
       tags: "Tags",
       addTag: "Add Tag",
@@ -141,44 +128,7 @@ export const TRANSLATIONS = {
       exportJSON: "Export Backup (JSON)",
       importSuccess: "Successfully imported leads.",
       importError: "Failed to import file. Please check format.",
-      csvHeaders: ['ID', 'Account Name', 'Platform', 'Type', 'Value Category', 'Status', 'Notes', 'Tags', 'Context', 'Added At', 'Next Follow Up'],
-      
-      // Deep Analysis
-      deepAnalyze: "Deep Persona Analysis",
-      analyzed: "Analyzed",
-
-      // Timeline & Follow-up
-      timeline: {
-          title: "Activity Timeline",
-          logCall: "Call",
-          logWechat: "WeChat",
-          logEmail: "Email",
-          logNote: "Note",
-          placeholder: "Log conversation details...",
-          add: "Add Log",
-          nextFollowUp: "Next Follow-up"
-      }
-    },
-    deepAnalysis: {
-        title: "Deep Persona Agent",
-        subtitle: "Upload homepage screenshots or paste profile info to build a 360° user portrait.",
-        uploadTip: "Upload screenshots of their Homepage / Recent Posts",
-        textTip: "Or paste their Bio / Recent Post Content here",
-        analyzing: "Profiling...",
-        analyze: "Start Profiling",
-        resultTitle: "Persona Report",
-        visualEvidence: "Sherlock's Deductions (Visual Clues)",
-        psychology: "Psychological Profile",
-        buyingLogic: "Buying Logic",
-        painPoints: "Hidden Pain Points",
-        spendingPower: "Spending Power",
-        match: "Product Match",
-        whyFit: "Why it fits",
-        approach: "Engagement Strategy",
-        openingLine: "Killer Opener",
-        tone: "Recommended Tone",
-        copy: "Copy Opener",
-        copied: "Copied!"
+      csvHeaders: ['ID', 'Account Name', 'Platform', 'Type', 'Value Category', 'Status', 'Notes', 'Tags', 'Context', 'Added At']
     },
     analysis: {
       title: "Market Intelligence Analyzer",
@@ -303,11 +253,10 @@ export const TRANSLATIONS = {
         desc: "投喂您的工厂/公司信息，AI 将为您生成专属的“带货”话术。",
         tabs: {
             basic: "基本信息",
-            products: "产品库 (Product Library)",
             knowledge: "扩展知识库"
         },
         name: "工厂/公司名称",
-        products: "核心产品线摘要",
+        products: "核心产品线",
         productsPlaceholder: "例如：私密凝胶、益生菌洗液、紧致贴膜...",
         advantages: "核心优势 (USP)",
         advantagesPlaceholder: "例如：FDA认证、十万级净化车间、独家草本配方...",
@@ -326,24 +275,12 @@ export const TRANSLATIONS = {
         website: "公司官网",
         websitePlaceholder: "例如：www.omnifactory.com",
 
-        // Product Library
-        addProduct: "添加产品",
-        prodName: "产品名称",
-        prodSKU: "SKU / 规格型号",
-        prodPoints: "核心卖点 (AI参考)",
-        prodMOQ: "起订量",
-        noProducts: "暂无产品。请添加具体产品以便 AI 进行精准推荐。",
-
         knowledgeBase: "扩展知识 (手册/文档)",
         knowledgePlaceholder: "在此粘贴您的详细产品手册、品牌故事或资质证书描述...",
         upload: "资产上传",
         uploadDesc: "上传工厂实景、资质证书或产品图 (最多5张)",
         save: "保存配置",
-        saved: "已保存！",
-        import: "导入配置",
-        export: "导出配置",
-        importSuccess: "配置加载成功！",
-        importError: "无效的配置文件。"
+        saved: "已保存！"
     },
     crm: {
       title: "CRM 客户管理看板",
@@ -374,8 +311,8 @@ export const TRANSLATIONS = {
         valueHigh: "价值等级 (由高到低)",
         outreach: "触达机会 (未触达优先)"
       },
-      notes: "跟进时间轴",
-      emptyNote: "暂无跟进记录。",
+      notes: "备注",
+      emptyNote: "点击添加私密备注...",
       searchPlaceholder: "搜索客户名、备注、标签...",
       tags: "客户标签",
       addTag: "添加标签",
@@ -389,44 +326,7 @@ export const TRANSLATIONS = {
       exportJSON: "导出备份 (JSON)",
       importSuccess: "成功导入客户数据。",
       importError: "导入失败，请检查文件格式。",
-      csvHeaders: ['ID', '账号名', '平台', '类型', '价值等级', '状态', '备注', '标签', '上下文', '添加时间', '下次跟进'],
-      
-      // Deep Analysis
-      deepAnalyze: "深度画像探针",
-      analyzed: "已深度分析",
-
-      // Timeline & Follow-up
-      timeline: {
-          title: "跟进时间轴",
-          logCall: "电话",
-          logWechat: "微信",
-          logEmail: "邮件",
-          logNote: "备注",
-          placeholder: "记录沟通细节...",
-          add: "添加记录",
-          nextFollowUp: "下次跟进时间"
-      }
-    },
-    deepAnalysis: {
-        title: "深度画像探针 (Persona Agent)",
-        subtitle: "上传客户主页截图或粘贴资料，生成360°全息画像。",
-        uploadTip: "上传对方主页/作品截图 (支持多张)",
-        textTip: "或在此粘贴对方主页简介/最近作品内容",
-        analyzing: "AI 侧写中...",
-        analyze: "开始侧写",
-        resultTitle: "用户全息画像报告",
-        visualEvidence: "福尔摩斯时刻 (视觉证据)",
-        psychology: "消费心理侧写",
-        buyingLogic: "购买逻辑",
-        painPoints: "隐形痛点",
-        spendingPower: "预估消费力",
-        match: "产品匹配度",
-        whyFit: "匹配理由",
-        approach: "破冰攻单策略",
-        openingLine: "必杀开场白",
-        tone: "建议语态",
-        copy: "复制话术",
-        copied: "已复制"
+      csvHeaders: ['ID', '账号名', '平台', '类型', '价值等级', '状态', '备注', '标签', '上下文', '添加时间']
     },
     analysis: {
       title: "市场情报分析器",
