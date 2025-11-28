@@ -59,7 +59,10 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
     return result;
   }, [leads, statusFilter, searchTerm, sortOption]);
 
-  const getLocalizedLabel = (map: any, key: string) => map[key]?.[lang] || key;
+  const getLocalizedLabel = (map: any, key: string) => {
+      if (!key) return '-';
+      return map[key]?.[lang] || key;
+  };
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-6">
@@ -74,25 +77,30 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
       </div>
 
       <div className="space-y-4">
-        {processedLeads.map(lead => (
-            <div key={lead.id} className="bg-white border rounded-xl p-5 shadow-sm">
-                <div className="flex justify-between">
-                    <div>
-                        <h4 className="font-bold text-lg break-words">{lead.accountName}</h4>
-                        <div className="flex gap-2 mt-1">
-                            <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{lead.platform}</span>
-                            <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">{getLocalizedLabel(LEAD_TYPES_MAP, lead.leadType)}</span>
-                            <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">{getLocalizedLabel(VALUE_CATEGORY_MAP, lead.valueCategory)}</span>
+        {processedLeads.map(lead => {
+            const lType = lead.leadType || 'User';
+            const vCat = lead.valueCategory || 'Low Value User';
+            
+            return (
+                <div key={lead.id} className="bg-white border rounded-xl p-5 shadow-sm">
+                    <div className="flex justify-between">
+                        <div>
+                            <h4 className="font-bold text-lg break-words">{lead.accountName}</h4>
+                            <div className="flex gap-2 mt-1">
+                                <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{lead.platform}</span>
+                                <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">{getLocalizedLabel(LEAD_TYPES_MAP, lType)}</span>
+                                <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">{getLocalizedLabel(VALUE_CATEGORY_MAP, vCat)}</span>
+                            </div>
+                            <p className="text-sm text-slate-600 mt-2 italic">"{lead.context}"</p>
                         </div>
-                        <p className="text-sm text-slate-600 mt-2 italic">"{lead.context}"</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                        <button onClick={() => setDeepAnalyzeLead(lead)} className="text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-1.5 rounded hover:bg-purple-100"><Microscope size={14}/> {t.crm.deepAnalyze}</button>
-                        <button onClick={() => onDelete(lead.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={16}/></button>
+                        <div className="flex flex-col items-end gap-2">
+                            <button onClick={() => setDeepAnalyzeLead(lead)} className="text-xs flex items-center gap-1 bg-purple-50 text-purple-700 px-3 py-1.5 rounded hover:bg-purple-100"><Microscope size={14}/> {t.crm.deepAnalyze}</button>
+                            <button onClick={() => onDelete(lead.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={16}/></button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        ))}
+            );
+        })}
       </div>
 
       <DeepAnalysisModal isOpen={!!deepAnalyzeLead} onClose={() => setDeepAnalyzeLead(null)} lead={deepAnalyzeLead} companyProfile={companyProfile || { name: '', products: '', advantages: '', policy: '' }} lang={lang} onSave={(id, res) => onUpdate(id, { deepAnalysis: res })} />

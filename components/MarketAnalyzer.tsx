@@ -364,9 +364,8 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
         const source = sortedLeads || res.data.leads;
         rows = source.map(l => [l.platform, l.accountName, l.leadType, l.valueCategory, l.outreachStatus, l.date || '', l.reason, l.suggestedAction, l.context]);
     } else {
-        // ... (other modes handled similarly if needed, currently skipped for brevity)
         headers = [r.category, r.item, r.detail];
-        rows = []; // Simplified for other modes in this update
+        rows = [];
     }
 
     return [headers.join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
@@ -393,7 +392,11 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const paginatedLeads = sortedAndFilteredLeads.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const getLocalizedLabel = (map: any, key: string) => map[key]?.[lang] || key;
+  // Safe localized label getter with fallback
+  const getLocalizedLabel = (map: any, key: string) => {
+      if (!key) return '-';
+      return map[key]?.[lang] || key;
+  };
 
   const renderResults = () => {
     if (!result) return null;
@@ -402,7 +405,6 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
         return (
           <>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm sticky top-0 z-10">
-             {/* Filter Controls */}
              <div className="flex flex-wrap items-center gap-4">
                  <div className="flex items-center gap-2">
                      <Filter size={16} className="text-slate-400" />
@@ -433,7 +435,6 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                  )}
              </div>
              
-             {/* View & Export */}
              <div className="flex gap-2 self-end sm:self-auto items-center">
                 <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 mr-2">
                     <button onClick={() => setViewMode('card')} className={`p-1.5 rounded-md ${viewMode === 'card' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}><LayoutGrid size={16} /></button>
@@ -455,32 +456,37 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                   const isLoadingStrat = strategyLoading[idx];
                   const isAdded = crmLeads.includes(lead.accountName);
                   const stale = isStale(lead.date);
+                  
+                  // Defaults for missing data
+                  const lType = lead.leadType || 'User';
+                  const vCat = lead.valueCategory || 'Low Value User';
+                  const oStatus = lead.outreachStatus || 'Unknown';
 
                   return (
                     <div key={idx} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col h-full">
                       <div className="flex gap-4 items-start mb-3">
                          <div className={`p-2.5 rounded-full shrink-0 ${
-                           lead.valueCategory === 'High Value User' ? 'bg-red-100 text-red-600' :
-                           lead.valueCategory === 'Potential Partner' ? 'bg-blue-100 text-blue-600' :
+                           vCat === 'High Value User' ? 'bg-red-100 text-red-600' :
+                           vCat === 'Potential Partner' ? 'bg-blue-100 text-blue-600' :
                            'bg-slate-100 text-slate-600'
                          }`}>
                            <Target size={20} />
                          </div>
                          <div className="flex-grow min-w-0">
                               <div className="flex items-center justify-between mb-1">
-                                  <h4 className="font-bold text-slate-900 text-base break-words">{lead.accountName}</h4>
+                                  <h4 className="font-bold text-slate-900 text-base break-words">{lead.accountName || 'Unknown User'}</h4>
                                   <button onClick={() => !isAdded && onAddToCRM(lead)} disabled={isAdded} className={`p-1 rounded-md border ${isAdded ? 'bg-green-100 text-green-700' : 'bg-white text-slate-400 hover:text-indigo-600'}`}>
                                        {isAdded ? <Check size={14} /> : <UserPlus size={14} />}
                                    </button>
                               </div>
                               <div className="flex items-center gap-2 flex-wrap mb-2">
-                                      <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200 uppercase">{lead.platform}</span>
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">{getLocalizedLabel(LEAD_TYPES_MAP, lead.leadType)}</span>
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-100">{getLocalizedLabel(VALUE_CATEGORY_MAP, lead.valueCategory)}</span>
+                                      <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200 uppercase">{lead.platform || 'Unknown'}</span>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">{getLocalizedLabel(LEAD_TYPES_MAP, lType)}</span>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-100">{getLocalizedLabel(VALUE_CATEGORY_MAP, vCat)}</span>
                               </div>
                               <div className="flex items-center gap-3 text-[10px] text-slate-500">
                                       {lead.date && <span className={`flex items-center gap-1 ${stale ? 'text-slate-400' : 'text-green-600 font-semibold'}`}><Clock size={10} /> {lead.date}</span>}
-                                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded border bg-slate-50 text-slate-500 border-slate-200"><Signal size={10} /> {getLocalizedLabel(OUTREACH_STATUS_MAP, lead.outreachStatus)}</span>
+                                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded border bg-slate-50 text-slate-500 border-slate-200"><Signal size={10} /> {getLocalizedLabel(OUTREACH_STATUS_MAP, oStatus)}</span>
                                </div>
                          </div>
                       </div>
@@ -526,14 +532,20 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                                 const isExpanded = expandedLeads[idx];
                                 const isLoadingStrat = strategyLoading[idx];
                                 const isAdded = crmLeads.includes(lead.accountName);
+                                
+                                // Defaults for missing data
+                                const lType = lead.leadType || 'User';
+                                const vCat = lead.valueCategory || 'Low Value User';
+                                const oStatus = lead.outreachStatus || 'Unknown';
+
                                 return (
                                     <React.Fragment key={idx}>
                                         <tr className="hover:bg-slate-50/50">
                                             <td className="p-4 whitespace-nowrap">{lead.date || '-'}</td>
-                                            <td className="p-4 font-bold break-words max-w-[200px]">{lead.accountName}</td>
-                                            <td className="p-4">{getLocalizedLabel(LEAD_TYPES_MAP, lead.leadType)}</td>
-                                            <td className="p-4">{getLocalizedLabel(VALUE_CATEGORY_MAP, lead.valueCategory)}</td>
-                                            <td className="p-4">{getLocalizedLabel(OUTREACH_STATUS_MAP, lead.outreachStatus)}</td>
+                                            <td className="p-4 font-bold break-words max-w-[200px]">{lead.accountName || 'Unknown'}</td>
+                                            <td className="p-4">{getLocalizedLabel(LEAD_TYPES_MAP, lType)}</td>
+                                            <td className="p-4">{getLocalizedLabel(VALUE_CATEGORY_MAP, vCat)}</td>
+                                            <td className="p-4">{getLocalizedLabel(OUTREACH_STATUS_MAP, oStatus)}</td>
                                             <td className="p-4 text-xs text-slate-600 max-w-[200px] truncate">{lead.suggestedAction}</td>
                                             <td className="p-4 text-right whitespace-nowrap flex justify-end gap-2">
                                                 <button onClick={() => !isAdded && onAddToCRM(lead)} disabled={isAdded} className={`p-1.5 rounded ${isAdded ? 'text-green-600' : 'text-slate-400 hover:text-indigo-600'}`}>{isAdded ? <Check size={16}/> : <UserPlus size={16}/>}</button>
@@ -565,7 +577,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
         );
     }
     
-    return null; // Placeholder for other modes
+    return null; 
   };
 
   return (
