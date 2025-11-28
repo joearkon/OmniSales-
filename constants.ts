@@ -26,26 +26,6 @@ export const CRM_STATUSES = {
   'Lost': { label: 'Lost', color: 'bg-slate-100 text-slate-500' },
 };
 
-// Maps for data value translation (Database Value -> Display Label)
-export const LEAD_TYPES_MAP = {
-    'Factory': { en: 'Factory', zh: '工厂/代工' },
-    'User': { en: 'User', zh: '普通用户' },
-    'KOL': { en: 'KOL', zh: '达人/博主' }
-};
-
-export const VALUE_CATEGORY_MAP = {
-    'High Value User': { en: 'High Value', zh: '高价值用户' },
-    'Medium Value User': { en: 'Medium Value', zh: '中等价值' },
-    'Low Value User': { en: 'Low Value', zh: '低价值/一般' },
-    'Potential Partner': { en: 'Partner', zh: '潜在合作伙伴' }
-};
-
-export const OUTREACH_STATUS_MAP = {
-    'Likely Uncontacted': { en: 'Uncontacted', zh: '未触达' },
-    'Likely Contacted': { en: 'Contacted', zh: '可能已触达' },
-    'Unknown': { en: 'Unknown', zh: '未知' }
-};
-
 export const TRANSLATIONS = {
   en: {
     navTitle: "OmniSales Intelligence",
