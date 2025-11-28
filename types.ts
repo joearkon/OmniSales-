@@ -108,12 +108,21 @@ export interface MinedLead {
   context: string; // Brief snippet of what they said
 }
 
+export interface DeepPersonaResult {
+  personaTag: string; // e.g. "Budget-conscious Mom"
+  spendingPower: 'High' | 'Medium' | 'Low';
+  psychology: string; // Analysis of their mindset
+  hiddenNeeds: string[];
+  killerOpener: string; // The best DM to send
+}
+
 export interface CRMLead extends MinedLead {
   id: string;
   status: 'New' | 'Contacted' | 'Qualified' | 'Lost';
   addedAt: string;
   notes: string;
   tags: string[];
+  deepAnalysis?: DeepPersonaResult;
 }
 
 export interface LeadMiningResult {
@@ -132,6 +141,14 @@ export interface StrategicOutreachResult {
     concise: string; // "Private Domain Formula"
   };
   privateDomainTip: string;
+}
+
+export interface CompanyProfile {
+  name: string;
+  products: string;
+  advantages: string;
+  policy: string;
+  knowledgeBase?: string; // Long text for detailed factory description
 }
 
 export type AnalysisResult = 

@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult } from "../types";
+import { Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult, CompanyProfile, DeepPersonaResult } from "../types";
 
 // Helper to reliably get API Key across different environments (Vite, Next, Create React App, etc.)
 const getApiKey = (): string => {
@@ -133,6 +133,17 @@ const strategicOutreachSchema: Schema = {
   }
 };
 
+const deepPersonaSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    personaTag: { type: Type.STRING, description: "Short descriptive tag (e.g. 'Quality-conscious Mom')" },
+    spendingPower: { type: Type.STRING, enum: ['High', 'Medium', 'Low'] },
+    psychology: { type: Type.STRING, description: "Analysis of mindset, values, and decision drivers." },
+    hiddenNeeds: { type: Type.ARRAY, items: { type: Type.STRING } },
+    killerOpener: { type: Type.STRING, description: "A highly personalized opening message." }
+  }
+};
+
 export const analyzeMarketData = async (text: string, images: string[], mode: AnalysisMode, lang: Language): Promise<AnalysisResult> => {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("API Key is missing.");
@@ -146,11 +157,11 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
   const baseLangInstruction = lang === 'zh' ? "Respond in Simplified Chinese." : "Respond in English.";
   
   const visualRules = `
-    **VISUAL IDENTIFICATION RULES:**
-    1. **Xiaohongshu:** RED buttons, "Notes" tab, Star icon.
-    2. **Douyin:** BLACK background, Musical note logo, Vertical action bar.
-    3. **WeChat:** GREEN UI, Chat bubbles.
-    Identify the platform for EACH entry based on visual cues.
+    **VISUAL & TEXT PLATFORM DETECTION RULES:**
+    1. **Xiaohongshu:** Text contains "red", "xhs", "xiaohongshu". Images have RED buttons, "Notes" tab, Star icon.
+    2. **Douyin:** Text contains "douyin", "tiktok". Images have BLACK background, Musical note logo.
+    3. **WeChat:** Text contains "wechat", "wx". Images have GREEN UI, Chat bubbles.
+    Identify the platform for EACH entry based on text keywords OR visual cues.
   `;
 
   const filteringRules = `
@@ -216,7 +227,6 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
       schema = commentAnalysisSchema;
       break;
     default:
-      // Fallback or error if mode matches nothing (Classification, Competitors, Sentiment are removed)
       throw new Error(`Mode ${mode} is no longer supported.`);
   }
 
@@ -243,7 +253,7 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
   return { mode: mode, data: JSON.parse(jsonText) } as AnalysisResult;
 };
 
-export const generateStrategicOutreach = async (lead: MinedLead, lang: Language): Promise<StrategicOutreachResult> => {
+export const generateStrategicOutreach = async (lead: MinedLead, lang: Language, profile?: CompanyProfile): Promise<StrategicOutreachResult> => {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("API Key is missing.");
 
@@ -251,12 +261,33 @@ export const generateStrategicOutreach = async (lead: MinedLead, lang: Language)
   const modelId = "gemini-2.5-flash";
 
   const isUser = lead.valueCategory.includes('User');
+  let profileContext = "";
+
+  if (profile && (profile.name || profile.products)) {
+      profileContext = `
+        **YOUR IDENTITY / COMPANY CONTEXT:**
+        You are representing: ${profile.name || 'Our Factory'}
+        Your Core Products: ${profile.products || 'Private Care Products'}
+        Your Advantages: ${profile.advantages}
+        Your Policy: ${profile.policy}
+        ${profile.knowledgeBase ? `\n**EXTENDED KNOWLEDGE BASE / FACTORY DETAILS:**\n${profile.knowledgeBase}\n(Use this info to provide specific answers if asked about specs, tech, or background)` : ''}
+        
+        **INSTRUCTION:** 
+        - Mention specific company advantages ONLY if relevant to the lead's problem.
+        - Use the Knowledge Base details to sound like an insider expert.
+      `;
+  }
 
   const prompt = `
     Sales expert context. Lead: ${lead.accountName} on ${lead.platform}.
-    Reason: ${lead.reason}. Type: ${lead.valueCategory}.
+    Reason: ${lead.reason}. Type: ${lead.valueCategory}. Content: "${lead.context}".
     
+    ${profileContext}
+
     Task 1: 3 Scripts (Friendly, Professional, Concise).
+       - Friendly: Empathize with pain points.
+       - Professional: Highlight value/ROI.
+       - Concise: Direct hook for private domain.
     Task 2: ${isUser ? 'Problem Diagnosis & Tips' : 'Private Domain Conversion Formula'}.
     
     Language: ${lang === 'zh' ? 'Simplified Chinese' : 'English'}.
@@ -269,4 +300,47 @@ export const generateStrategicOutreach = async (lead: MinedLead, lang: Language)
   });
 
   return JSON.parse(response.text || "{}") as StrategicOutreachResult;
+};
+
+export const generateDeepPersona = async (image: string | null, text: string, lang: Language): Promise<DeepPersonaResult> => {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error("API Key is missing.");
+  
+    const ai = new GoogleGenAI({ apiKey });
+    const modelId = "gemini-2.5-flash"; 
+  
+    const promptInstructions = `
+      **ROLE: Consumer Psychology & Sales Expert (AI Profiler)**
+      
+      **TASK:**
+      Analyze the provided social media screenshot (visuals, bio, posts) AND/OR the provided text description.
+      Create a deep psychological profile of this user to help a sales rep close the deal.
+      
+      **OUTPUT FIELDS:**
+      1. **Persona Tag**: A sharp, 3-5 word label defining them (e.g. "Price-Sensitive Young Mom" or "High-End Quality Seeker").
+      2. **Spending Power**: Estimate High/Medium/Low based on visual cues (clothing, background, phone) or language.
+      3. **Psychology**: Analyze their values, fears, and decision-making drivers. (e.g. "She values safety over price due to anxiety about...")
+      4. **Hidden Needs**: What do they *really* want but aren't saying?
+      5. **Killer Opener**: Write ONE highly personalized DM (Direct Message) that triggers their specific psychological driver. It must be hard to ignore.
+      
+      **LANGUAGE:**
+      ${lang === 'zh' ? "Output strictly in Simplified Chinese." : "Output in English."}
+    `;
+  
+    const contentParts: any[] = [
+      { text: `${promptInstructions}\n\nAdditional Text Context:\n${text}` }
+    ];
+  
+    if (image) {
+      const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+      contentParts.push({ inlineData: { mimeType: "image/jpeg", data: base64Data } });
+    }
+  
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: { parts: contentParts },
+      config: { responseMimeType: "application/json", responseSchema: deepPersonaSchema }
+    });
+  
+    return JSON.parse(response.text || "{}") as DeepPersonaResult;
 };

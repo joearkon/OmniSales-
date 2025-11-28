@@ -1,8 +1,9 @@
 
 import React, { useRef, useState, useMemo } from 'react';
-import { CRMLead, Language } from '../types';
+import { CRMLead, Language, DeepPersonaResult } from '../types';
 import { CRM_STATUSES, TRANSLATIONS } from '../constants';
-import { Trash2, Edit2, User, Factory, Smartphone, MessageSquare, Download, Upload, AlertCircle, Tag, Plus, X, Check, Search, PieChart, TrendingUp, Users, CheckSquare, Square, Copy } from 'lucide-react';
+import { Trash2, Edit2, User, Factory, Smartphone, MessageSquare, Download, Upload, AlertCircle, Tag, Plus, X, Check, Search, PieChart, TrendingUp, Users, CheckSquare, Square, Copy, Brain, ChevronRight } from 'lucide-react';
+import { DeepAnalysisModal } from './DeepAnalysisModal';
 
 interface CRMBoardProps {
   leads: CRMLead[];
@@ -10,6 +11,7 @@ interface CRMBoardProps {
   onDelete: (id: string) => void;
   onImport: (importedLeads: CRMLead[]) => void;
   lang: Language;
+  companyProfile: any; // Passed for potential future context use
 }
 
 export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, onImport, lang }) => {
@@ -30,6 +32,9 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
   // Tagging State (Single Item)
   const [addingTagId, setAddingTagId] = useState<string | null>(null);
   const [newTagText, setNewTagText] = useState('');
+
+  // Deep Analysis State
+  const [analyzingLeadId, setAnalyzingLeadId] = useState<string | null>(null);
 
   // --- Statistics ---
   const stats = useMemo(() => {
@@ -97,8 +102,6 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
 
   const handleBulkDelete = () => {
       if (!confirm(t.crm.deleteConfirm.replace('{count}', String(selectedIds.size)))) return;
-      // We need to call onDelete for each ID since prop only supports one. 
-      // Ideally, App.tsx should support bulk delete, but loop works for now.
       selectedIds.forEach(id => onDelete(id));
       setSelectedIds(new Set());
   };
@@ -108,7 +111,6 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
       selectedIds.forEach(id => {
           const lead = leads.find(l => l.id === id);
           if (lead) {
-              // Avoid duplicates
               if (!lead.tags?.includes(bulkTagText.trim())) {
                   onUpdate(id, { tags: [...(lead.tags || []), bulkTagText.trim()] });
               }
@@ -125,7 +127,15 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
       alert(t.crm.copySuccess);
   };
 
-  // Import/Export Logic (Same as before)
+  // Deep Analysis Handler
+  const handleSaveAnalysis = (result: DeepPersonaResult) => {
+      if (analyzingLeadId) {
+          onUpdate(analyzingLeadId, { deepAnalysis: result });
+          setAnalyzingLeadId(null);
+      }
+  };
+
+  // Import/Export Logic
   const downloadFile = (content: string, filename: string, type: 'csv' | 'json') => {
     const bom = type === 'csv' ? '\uFEFF' : ''; 
     const blob = new Blob([bom + content], { type: type === 'csv' ? 'text/csv;charset=utf-8;' : 'application/json;charset=utf-8;' });
@@ -221,6 +231,8 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
     };
     reader.readAsText(file);
   };
+
+  const activeLeadName = analyzingLeadId ? leads.find(l => l.id === analyzingLeadId)?.accountName : '';
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-6">
@@ -387,6 +399,12 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
                                     
                                     <span className="text-xs bg-slate-100 px-2 py-0.5 rounded-full text-slate-500 border border-slate-200">{lead.platform}</span>
                                     
+                                    {lead.deepAnalysis && (
+                                        <span className="flex items-center gap-1 text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200 font-medium">
+                                            <Brain size={12} /> Persona Analyzed
+                                        </span>
+                                    )}
+
                                     <button onClick={() => handleCopyLeadInfo(lead)} className="text-slate-300 hover:text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" title={t.common.copyInfo}>
                                         <Copy size={14} />
                                     </button>
@@ -467,6 +485,13 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
                                     </select>
                                 </div>
                                 
+                                <button 
+                                    onClick={() => setAnalyzingLeadId(lead.id)}
+                                    className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg text-xs font-bold hover:shadow-md transition-all w-full"
+                                >
+                                    <Brain size={14} /> {t.crm.deepAnalyze}
+                                </button>
+
                                 <div className="mt-auto flex justify-end">
                                     <button 
                                         onClick={() => onDelete(lead.id)}
@@ -484,6 +509,16 @@ export const CRMBoard: React.FC<CRMBoardProps> = ({ leads, onUpdate, onDelete, o
             })}
             </div>
         </div>
+      )}
+
+      {analyzingLeadId && (
+          <DeepAnalysisModal 
+            isOpen={!!analyzingLeadId}
+            onClose={() => setAnalyzingLeadId(null)}
+            lang={lang}
+            initialName={activeLeadName || ''}
+            onSave={handleSaveAnalysis}
+          />
       )}
     </div>
   );

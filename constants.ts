@@ -1,7 +1,7 @@
 
 import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
-export const APP_VERSION = 'v1.2.0';
+export const APP_VERSION = 'v1.3.0';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
@@ -33,6 +33,35 @@ export const TRANSLATIONS = {
     nav: {
       marketIntel: "Market Intelligence",
       crm: "CRM Pipeline"
+    },
+    settings: {
+      title: "Factory Brain",
+      desc: "Configure your factory profile to let AI generate personalized sales scripts.",
+      basicInfo: "Basic Info",
+      knowledgeBase: "Knowledge Base",
+      kbPlaceholder: "Paste your detailed company introduction, product manual, FAQ, or technical advantages here. The AI will use this knowledge to answer client questions.",
+      kbDesc: "The 'Second Brain' for AI. The more details you provide (e.g. MOQs, certifications, patented technologies), the better the AI can sell for you.",
+      name: "Factory Name",
+      products: "Core Products",
+      advantages: "Key Advantages (USP)",
+      policy: "Cooperation Policy (MOQ, Lead time)",
+      save: "Save Configuration",
+      cancel: "Cancel"
+    },
+    deepAnalysis: {
+        title: "Deep Persona Probe",
+        desc: "Upload social media screenshots (Profile, Posts) to let AI profile this user.",
+        uploadTip: "Upload screenshots of their Douyin/RedNote profile or posts.",
+        textTip: "Paste bio or additional context here (Optional)",
+        analyze: "Analyze Persona",
+        analyzing: "Profiling...",
+        resultTitle: "AI Persona Report",
+        persona: "Persona Tag",
+        spending: "Spending Power",
+        psychology: "Psychological Profile",
+        needs: "Hidden Needs",
+        opener: "Killer Opener (DM)",
+        save: "Save Analysis"
     },
     errors: {
       apiKeyMissing: "API Key is missing.",
@@ -88,7 +117,8 @@ export const TRANSLATIONS = {
       exportJSON: "Export Backup (JSON)",
       importSuccess: "Successfully imported leads.",
       importError: "Failed to import file. Please check format.",
-      csvHeaders: ['ID', 'Account Name', 'Platform', 'Type', 'Value Category', 'Status', 'Notes', 'Tags', 'Context', 'Added At']
+      csvHeaders: ['ID', 'Account Name', 'Platform', 'Type', 'Value Category', 'Status', 'Notes', 'Tags', 'Context', 'Added At'],
+      deepAnalyze: "Deep Analysis"
     },
     analysis: {
       title: "Market Intelligence Analyzer",
@@ -192,6 +222,35 @@ export const TRANSLATIONS = {
       marketIntel: "市场情报 (Market Intelligence)",
       crm: "CRM 客户管理"
     },
+    settings: {
+      title: "工厂大脑 (Factory Brain)",
+      desc: "配置您的工厂/公司专属信息，让 AI 生成的话术更具销售力。",
+      basicInfo: "基本信息",
+      knowledgeBase: "企业知识库 (Knowledge Base)",
+      kbPlaceholder: "请在此粘贴详细的公司介绍、产品手册、技术文档、FAQ问答库或核心优势说明。内容越详细，AI 回复客户提问时越专业。",
+      kbDesc: "这是 AI 的“第二大脑”。通过投喂详细的工厂资料（如日产能、资质证书、专利技术、合作案例），AI 将能为您生成独一无二的专业回复。",
+      name: "工厂/公司名称",
+      products: "核心产品线",
+      advantages: "核心优势 (USP)",
+      policy: "合作政策 (起订量/货期)",
+      save: "保存配置",
+      cancel: "取消"
+    },
+    deepAnalysis: {
+        title: "深度画像探针 (Deep Persona)",
+        desc: "上传客户的社交媒体主页或作品截图，AI 将为您生成精准的人物画像和攻单策略。",
+        uploadTip: "上传抖音/小红书主页、置顶视频或评论区的截图。",
+        textTip: "在此粘贴客户简介、个性签名或其他补充信息 (可选)",
+        analyze: "开始深度侧写",
+        analyzing: "AI 正在侧写中...",
+        resultTitle: "AI 人物画像报告",
+        persona: "性格标签",
+        spending: "消费能力评估",
+        psychology: "心理特征分析",
+        needs: "深层需求挖掘",
+        opener: "必杀开场白 (DM)",
+        save: "保存画像至 CRM"
+    },
     errors: {
       apiKeyMissing: "未检测到 API Key。",
       vercelDesc: "如果您部署在 Vercel，请设置环境变量：",
@@ -246,7 +305,8 @@ export const TRANSLATIONS = {
       exportJSON: "导出备份 (JSON)",
       importSuccess: "成功导入客户数据。",
       importError: "导入失败，请检查文件格式。",
-      csvHeaders: ['ID', '账号名', '平台', '类型', '价值等级', '状态', '备注', '标签', '上下文', '添加时间']
+      csvHeaders: ['ID', '账号名', '平台', '类型', '价值等级', '状态', '备注', '标签', '上下文', '添加时间'],
+      deepAnalyze: "深度分析"
     },
     analysis: {
       title: "市场情报分析器",

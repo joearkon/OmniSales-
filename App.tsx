@@ -1,15 +1,33 @@
 
 import React, { useState, useEffect } from 'react';
-import { Zap, Languages, AlertTriangle } from 'lucide-react';
-import { Language, CRMLead, MinedLead } from './types';
+import { Zap, Languages, AlertTriangle, Settings, Building2 } from 'lucide-react';
+import { Language, CRMLead, MinedLead, CompanyProfile } from './types';
 import { MarketAnalyzer } from './components/MarketAnalyzer';
 import { CRMBoard } from './components/CRMBoard';
+import { CompanySettingsModal } from './components/CompanySettingsModal';
 import { TRANSLATIONS, APP_VERSION } from './constants';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'analysis' | 'crm'>('analysis');
   const [lang, setLang] = useState<Language>('zh'); 
   const [hasApiKey, setHasApiKey] = useState(true);
+  
+  // Company Profile State
+  const [showSettings, setShowSettings] = useState(false);
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(() => {
+      try {
+          const saved = localStorage.getItem('companyProfile');
+          // Ensure knowledgeBase exists in default/restored state
+          const defaultProfile = { name: '', products: '', advantages: '', policy: '', knowledgeBase: '' };
+          return saved ? { ...defaultProfile, ...JSON.parse(saved) } : defaultProfile;
+      } catch (e) {
+          return { name: '', products: '', advantages: '', policy: '', knowledgeBase: '' };
+      }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('companyProfile', JSON.stringify(companyProfile));
+  }, [companyProfile]);
 
   useEffect(() => {
     const checkKey = () => {
@@ -45,6 +63,16 @@ const App: React.FC = () => {
   };
 
   const addToCRM = (minedLead: MinedLead) => {
+    // Deduplication check: Check if Account Name + Platform already exists
+    const exists = crmLeads.some(l => 
+        l.accountName === minedLead.accountName && 
+        l.platform === minedLead.platform
+    );
+
+    if (exists) {
+        return; // Silently ignore or you could show a toast
+    }
+
     const newLead: CRMLead = {
       ...minedLead,
       id: `crm-${Date.now()}`,
@@ -66,11 +94,28 @@ const App: React.FC = () => {
 
   const handleImportCRMLeads = (importedLeads: CRMLead[]) => {
       setCrmLeads(prev => {
-          const existingIds = new Set(prev.map(l => l.id));
-          const uniqueImports = importedLeads.filter(l => !existingIds.has(l.id));
+          // Create a Set of existing "Platform-AccountName" keys for O(1) lookup
+          const existingKeys = new Set(prev.map(l => `${l.platform}-${l.accountName}`));
+          
+          // Filter out imports that match existing keys
+          const uniqueImports = importedLeads.filter(l => {
+              const key = `${l.platform}-${l.accountName}`;
+              if (existingKeys.has(key)) {
+                  return false; // Duplicate
+              }
+              // Add to set to prevent duplicates within the import file itself
+              existingKeys.add(key); 
+              return true;
+          });
+
+          if (uniqueImports.length === 0) {
+              alert("No new leads imported (all duplicates).");
+              return prev;
+          }
+
+          alert(`${t.crm.importSuccess} (${uniqueImports.length} new)`);
           return [...uniqueImports, ...prev];
       });
-      alert(t.crm.importSuccess);
   };
 
   return (
@@ -111,6 +156,16 @@ const App: React.FC = () => {
                   {t.nav.crm}
                 </button>
              </div>
+             
+             {/* Factory Brain Settings Button */}
+             <button 
+               onClick={() => setShowSettings(true)}
+               className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors text-sm font-medium"
+               title={t.settings.title}
+             >
+                 <Building2 size={16} />
+                 <span className="hidden sm:inline">工厂大脑</span>
+             </button>
 
              <button 
                 onClick={toggleLang}
@@ -162,6 +217,7 @@ const App: React.FC = () => {
               lang={lang} 
               onAddToCRM={addToCRM} 
               crmLeads={crmLeads.map(l => l.accountName)} 
+              companyProfile={companyProfile}
             />
       </div>
 
@@ -171,9 +227,18 @@ const App: React.FC = () => {
               onUpdate={updateCRMLead} 
               onDelete={deleteCRMLead} 
               onImport={handleImportCRMLeads}
-              lang={lang} 
+              lang={lang}
+              companyProfile={companyProfile}
            />
       </div>
+
+      <CompanySettingsModal 
+        isOpen={showSettings} 
+        onClose={() => setShowSettings(false)} 
+        profile={companyProfile}
+        onSave={setCompanyProfile}
+        lang={lang}
+      />
     </div>
   );
 };
