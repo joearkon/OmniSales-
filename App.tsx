@@ -1,31 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { Zap, Languages, AlertTriangle, Settings, Building2 } from 'lucide-react';
-import { Language, CRMLead, MinedLead, CompanyProfile } from './types';
+import { Zap, Languages, AlertTriangle } from 'lucide-react';
+import { Language, CRMLead, MinedLead } from './types';
 import { MarketAnalyzer } from './components/MarketAnalyzer';
 import { CRMBoard } from './components/CRMBoard';
-import { CompanySettingsModal } from './components/CompanySettingsModal';
 import { TRANSLATIONS, APP_VERSION } from './constants';
 
 const App: React.FC = () => {
   const [view, setView] = useState<'analysis' | 'crm'>('analysis');
   const [lang, setLang] = useState<Language>('zh'); 
   const [hasApiKey, setHasApiKey] = useState(true);
-  
-  // Company Profile State
-  const [showSettings, setShowSettings] = useState(false);
-  const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(() => {
-      try {
-          const saved = localStorage.getItem('companyProfile');
-          return saved ? JSON.parse(saved) : { name: '', products: '', advantages: '', policy: '' };
-      } catch (e) {
-          return { name: '', products: '', advantages: '', policy: '' };
-      }
-  });
-
-  useEffect(() => {
-    localStorage.setItem('companyProfile', JSON.stringify(companyProfile));
-  }, [companyProfile]);
 
   useEffect(() => {
     const checkKey = () => {
@@ -127,16 +111,6 @@ const App: React.FC = () => {
                   {t.nav.crm}
                 </button>
              </div>
-             
-             {/* Factory Brain Settings Button */}
-             <button 
-               onClick={() => setShowSettings(true)}
-               className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors text-sm font-medium"
-               title={t.settings.title}
-             >
-                 <Building2 size={16} />
-                 <span className="hidden sm:inline">工厂大脑</span>
-             </button>
 
              <button 
                 onClick={toggleLang}
@@ -188,7 +162,6 @@ const App: React.FC = () => {
               lang={lang} 
               onAddToCRM={addToCRM} 
               crmLeads={crmLeads.map(l => l.accountName)} 
-              companyProfile={companyProfile}
             />
       </div>
 
@@ -201,14 +174,6 @@ const App: React.FC = () => {
               lang={lang} 
            />
       </div>
-
-      <CompanySettingsModal 
-        isOpen={showSettings} 
-        onClose={() => setShowSettings(false)} 
-        profile={companyProfile}
-        onSave={setCompanyProfile}
-        lang={lang}
-      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult, CompanyProfile } from "../types";
+import { Language, AnalysisMode, AnalysisResult, MinedLead, StrategicOutreachResult } from "../types";
 
 // Helper to reliably get API Key across different environments (Vite, Next, Create React App, etc.)
 const getApiKey = (): string => {
@@ -146,11 +146,11 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
   const baseLangInstruction = lang === 'zh' ? "Respond in Simplified Chinese." : "Respond in English.";
   
   const visualRules = `
-    **VISUAL & TEXT PLATFORM DETECTION RULES:**
-    1. **Xiaohongshu:** Text contains "red", "xhs", "xiaohongshu". Images have RED buttons, "Notes" tab, Star icon.
-    2. **Douyin:** Text contains "douyin", "tiktok". Images have BLACK background, Musical note logo.
-    3. **WeChat:** Text contains "wechat", "wx". Images have GREEN UI, Chat bubbles.
-    Identify the platform for EACH entry based on text keywords OR visual cues.
+    **VISUAL IDENTIFICATION RULES:**
+    1. **Xiaohongshu:** RED buttons, "Notes" tab, Star icon.
+    2. **Douyin:** BLACK background, Musical note logo, Vertical action bar.
+    3. **WeChat:** GREEN UI, Chat bubbles.
+    Identify the platform for EACH entry based on visual cues.
   `;
 
   const filteringRules = `
@@ -216,6 +216,7 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
       schema = commentAnalysisSchema;
       break;
     default:
+      // Fallback or error if mode matches nothing (Classification, Competitors, Sentiment are removed)
       throw new Error(`Mode ${mode} is no longer supported.`);
   }
 
@@ -242,7 +243,7 @@ export const analyzeMarketData = async (text: string, images: string[], mode: An
   return { mode: mode, data: JSON.parse(jsonText) } as AnalysisResult;
 };
 
-export const generateStrategicOutreach = async (lead: MinedLead, lang: Language, profile?: CompanyProfile): Promise<StrategicOutreachResult> => {
+export const generateStrategicOutreach = async (lead: MinedLead, lang: Language): Promise<StrategicOutreachResult> => {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error("API Key is missing.");
 
@@ -251,59 +252,19 @@ export const generateStrategicOutreach = async (lead: MinedLead, lang: Language,
 
   const isUser = lead.valueCategory.includes('User');
 
-  let profileContext = "";
-  if (profile && (profile.name || profile.products)) {
-      profileContext = `
-        **YOUR IDENTITY / COMPANY CONTEXT:**
-        You are representing: ${profile.name || 'Our Factory'}
-        Your Core Products: ${profile.products || 'Private Care Products'}
-        Your Advantages: ${profile.advantages}
-        Your Policy: ${profile.policy}
-        
-        **FACTORY STRENGTHS:**
-        - Certifications: ${profile.certifications || 'Standard'}
-        - Capacity: ${profile.capacity || 'Flexible'}
-        - Target Markets: ${profile.targetMarkets || 'Global'}
-        - Key Clients/Success Stories: ${profile.keyClients || 'Various Brands'}
-        - Website: ${profile.website || ''}
-
-        ${profile.knowledgeBase ? `Extended Knowledge Base: ${profile.knowledgeBase}` : ''}
-        
-        **CRITICAL INSTRUCTION:**
-        When generating scripts and recommendations, you MUST specifically mention the company's products/advantages that solve this specific lead's problem. 
-        - If the lead is a brand/distributor, mention Capacity, Certifications, and Key Clients.
-        - If the lead is a user, mention Safety (Certifications) and Product efficacy.
-        Do not use generic phrases. Use the provided "Advantages" and "Products" to make the pitch convincing.
-      `;
-  }
-
-  const promptText = `
+  const prompt = `
     Sales expert context. Lead: ${lead.accountName} on ${lead.platform}.
     Reason: ${lead.reason}. Type: ${lead.valueCategory}.
     
-    ${profileContext}
-
     Task 1: 3 Scripts (Friendly, Professional, Concise).
     Task 2: ${isUser ? 'Problem Diagnosis & Tips' : 'Private Domain Conversion Formula'}.
     
     Language: ${lang === 'zh' ? 'Simplified Chinese' : 'English'}.
   `;
 
-  const contentParts: any[] = [];
-  
-  // Add company images if available (Visual RAG)
-  if (profile && profile.images && profile.images.length > 0) {
-      profile.images.forEach(base64String => {
-         const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
-         contentParts.push({ inlineData: { mimeType: "image/jpeg", data: base64Data } });
-      });
-  }
-  
-  contentParts.push({ text: promptText });
-
   const response = await ai.models.generateContent({
     model: modelId,
-    contents: { parts: contentParts },
+    contents: prompt,
     config: { responseMimeType: "application/json", responseSchema: strategicOutreachSchema }
   });
 

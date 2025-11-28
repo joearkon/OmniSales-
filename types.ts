@@ -36,13 +36,47 @@ export enum AppView {
 export type Language = 'en' | 'zh';
 
 // Market Analysis Types
-// Removed Classification, Competitors, Sentiment as requested
-export type AnalysisMode = 'Needs' | 'Comments' | 'Identity' | 'LeadMining';
+export type AnalysisMode = 'Classification' | 'Needs' | 'Competitors' | 'Sentiment' | 'Comments' | 'Identity' | 'LeadMining';
+
+export interface AccountAnalysisItem {
+  platform: string;
+  accountName: string;
+  type: string; // 'Brand', 'Factory', 'KOL', 'Service'
+  coreBusiness: string;
+  features: string;
+  contactClues: string;
+}
 
 export interface NeedsAnalysisResult {
   coreNeeds: Array<{ need: string; example: string }>;
   painPoints: Array<{ point: string; example: string }>;
   preferences: Array<{ preference: string; example: string }>;
+}
+
+export interface CompetitorAnalysisResult {
+  competitors: Array<{
+    brand: string;
+    pros: string;
+    cons: string;
+    targetAudience: string;
+  }>;
+  trends: Array<{
+    trend: string;
+    evidence: string;
+  }>;
+}
+
+export interface SentimentAnalysisResult {
+  sentimentBreakdown: {
+    positive: number;
+    neutral: number;
+    negative: number;
+  };
+  topKeywords: Array<{ keyword: string; count: number }>;
+  examples: {
+    positive: string;
+    negative: string;
+  };
 }
 
 export interface CommentAnalysisResult {
@@ -100,25 +134,11 @@ export interface StrategicOutreachResult {
   privateDomainTip: string;
 }
 
-export interface CompanyProfile {
-  name: string;
-  products: string; // e.g., "Private Care Gel, Probiotic Wash"
-  advantages: string; // e.g., "Low MOQ, FDA Certified, 24h Sampling"
-  policy: string; // e.g., "MOQ 500pcs, Free Design"
-  
-  // Enriched Fields
-  certifications?: string; // e.g. "ISO9001, GMPC, FDA"
-  capacity?: string; // e.g. "300k units/day"
-  targetMarkets?: string; // e.g. "North America, Domestic E-commerce"
-  keyClients?: string; // e.g. "Served 50+ Top Brands"
-  website?: string;
-
-  knowledgeBase?: string; // Long text for detailed company info
-  images?: string[]; // Base64 strings for factory photos/certs
-}
-
 export type AnalysisResult = 
+  | { mode: 'Classification'; data: AccountAnalysisItem[] }
   | { mode: 'Needs'; data: NeedsAnalysisResult }
+  | { mode: 'Competitors'; data: CompetitorAnalysisResult }
+  | { mode: 'Sentiment'; data: SentimentAnalysisResult }
   | { mode: 'Comments'; data: CommentAnalysisResult }
   | { mode: 'Identity'; data: IdentityAnalysisItem[] }
   | { mode: 'LeadMining'; data: LeadMiningResult };

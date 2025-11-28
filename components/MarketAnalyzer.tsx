@@ -1,18 +1,17 @@
 
 import React, { useState, useRef, useMemo } from 'react';
 import { ANALYSIS_MODES, TRANSLATIONS } from '../constants';
-import { AnalysisMode, Language, AnalysisResult, MinedLead, StrategicOutreachResult, CompanyProfile } from '../types';
+import { AnalysisMode, Language, AnalysisResult, MinedLead, StrategicOutreachResult } from '../types';
 import { analyzeMarketData, generateStrategicOutreach } from '../services/geminiService';
-import { Sparkles, Loader2, AlertTriangle, Image as ImageIcon, X, Target, Download, FileSpreadsheet, Clock, Filter, Info, LayoutGrid, List as ListIcon, Check, UserPlus, Signal } from 'lucide-react';
+import { Sparkles, Loader2, AlertTriangle, Upload, Image as ImageIcon, X, Target, Download, FileText as FileIcon, ChevronDown, ChevronUp, Copy, UserPlus, Check, User, Factory, Smartphone, FileSpreadsheet, Clock, Filter, AlertCircle, Signal, Info, LayoutGrid, List as ListIcon } from 'lucide-react';
 
 interface MarketAnalyzerProps {
   lang: Language;
   onAddToCRM: (lead: MinedLead) => void;
   crmLeads: string[];
-  companyProfile: CompanyProfile;
 }
 
-export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM, crmLeads, companyProfile }) => {
+export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM, crmLeads }) => {
   const [text, setText] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [mode, setMode] = useState<AnalysisMode>('LeadMining');
@@ -114,6 +113,9 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                     }
                 }
                 
+                // Fallback for User Name if no strong match found yet, but be careful
+                // (Logic: If we find a column later that is definitely ID, we assume this earlier one might be name if generic)
+                
                 if (idIdx === -1 && !isLink) {
                      if (has(lower, ['抖音号','id','uid','code'])) {
                          idIdx = i;
@@ -182,11 +184,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
             if (parsedLines.length > 0) {
                 const newText = parsedLines.join('\n');
                 setText(prev => prev ? prev + "\n\n--- IMPORTED DATA ---\n" + newText : newText);
-                if (mode === 'Needs' || mode === 'Comments') {
-                    // Keep existing mode if relevant, else fallback
-                } else {
-                    setMode('LeadMining'); 
-                }
+                if (mode === 'Classification') setMode('LeadMining'); // Fallback if old default
             } else {
                 setError(t.errors.columnMissing);
             }
@@ -231,7 +229,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
 
     setStrategyLoading(prev => ({ ...prev, [index]: true }));
     try {
-      const strategy = await generateStrategicOutreach(lead, lang, companyProfile);
+      const strategy = await generateStrategicOutreach(lead, lang);
       setStrategies(prev => ({ ...prev, [index]: strategy }));
       setExpandedLeads(prev => ({ ...prev, [index]: true }));
     } catch (err) {
@@ -282,6 +280,31 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
     downloadFile(content, `Strategy_${lead.accountName}.txt`, 'txt');
   };
 
+  const generateCSV = (res: AnalysisResult): string => {
+    let headers: string[] = [];
+    let rows: string[][] = [];
+
+    const escape = (str: string) => {
+      const s = String(str || '');
+      if (s.search(/("|,|\n)/g) >= 0) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+
+    if (res.mode === 'LeadMining') {
+        headers = [r.platform, r.account, r.type, r.valueCategory, r.outreachStatus, r.date, r.reason, r.action, 'Context'];
+        rows = res.data.leads.map(l => [l.platform, l.accountName, l.leadType, l.valueCategory, l.outreachStatus, l.date || '', l.reason, l.suggestedAction, l.context]);
+    } else {
+        headers = [r.category, r.item, r.detail];
+        if (res.mode === 'Identity') {
+           rows = res.data.map(i => [i.platform, i.name, `${i.identity} - ${i.description}`]);
+        }
+        // ... simple fallback for other modes
+    }
+
+    return [headers.join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+  };
+
+  // Helper: check if date is older than 3 months
   const isStale = (dateStr?: string) => {
       if (!dateStr) return false;
       const d = new Date(dateStr);
@@ -291,11 +314,13 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
       return diffDays > 90;
   };
   
+  // Extract Unique Platforms for Filter
   const availablePlatforms = useMemo(() => {
       if (!result || result.mode !== 'LeadMining') return [];
       return Array.from(new Set(result.data.leads.map(l => l.platform)));
   }, [result]);
 
+  // Sort Leads by Date (Desc) then Value
   const sortedAndFilteredLeads = useMemo(() => {
     if (!result || result.mode !== 'LeadMining') return [];
     
@@ -331,44 +356,6 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
         return (priority[a.valueCategory] ?? 4) - (priority[b.valueCategory] ?? 4);
     });
   }, [result, filterTime, filterLeadType, filterPlatform]);
-
-  const generateCSV = (res: AnalysisResult, sortedLeads?: MinedLead[]): string => {
-    let headers: string[] = [];
-    let rows: string[][] = [];
-
-    const escape = (str: string) => {
-      const s = String(str || '');
-      if (s.search(/("|,|\n)/g) >= 0) return `"${s.replace(/"/g, '""')}"`;
-      return s;
-    };
-
-    if (res.mode === 'LeadMining') {
-        headers = [r.platform, r.account, r.type, r.valueCategory, r.outreachStatus, r.date, r.reason, r.action, 'Context'];
-        // Use sortedLeads if available (WYSIWYG), otherwise fallback to raw data
-        const source = sortedLeads || res.data.leads;
-        rows = source.map(l => [l.platform, l.accountName, l.leadType, l.valueCategory, l.outreachStatus, l.date || '', l.reason, l.suggestedAction, l.context]);
-    } else {
-        headers = [r.category, r.item, r.detail];
-        if (res.mode === 'Identity') {
-           rows = res.data.map(i => [i.platform, i.name, `${i.identity} - ${i.description}`]);
-        } else if (res.mode === 'Needs') {
-           rows = [
-             ...res.data.coreNeeds.map(n => ['Core Needs', n.need, n.example]),
-             ...res.data.painPoints.map(p => ['Pain Points', p.point, p.example]),
-             ...res.data.preferences.map(pr => ['Preferences', pr.preference, pr.example])
-           ];
-        } else if (res.mode === 'Comments') {
-           rows = [
-             ...res.data.userPersonas.map(p => ['Persona', p.profile, p.characteristics]),
-             ...res.data.commonQuestions.map(q => ['Question', q, '']),
-             ...res.data.purchaseMotivations.map(m => ['Motivation', m, '']),
-             ...res.data.concerns.map(c => ['Concern', c, ''])
-           ];
-        }
-    }
-
-    return [headers.join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
-  };
 
   const renderResults = () => {
     if (!result) return null;
@@ -423,6 +410,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
              </div>
              
              <div className="flex gap-2 self-end sm:self-auto items-center">
+                {/* View Mode Toggle */}
                 <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 mr-2">
                     <button 
                         onClick={() => setViewMode('card')}
@@ -441,7 +429,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                 </div>
 
                 <button onClick={() => {
-                     const csv = generateCSV(result, sortedAndFilteredLeads);
+                     const csv = generateCSV(result);
                      downloadFile(csv, 'Analysis_Report.csv', 'csv');
                 }} className="btn-sm-outline flex items-center gap-1 px-3 py-1.5 border rounded hover:bg-slate-50 text-sm">
                     <Download size={14}/> CSV
@@ -539,6 +527,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                             </div>
                       </div>
 
+                      {/* Strategy Button */}
                       <div className="mt-auto border-t border-slate-100 pt-3 flex justify-end">
                            <button 
                              onClick={() => handleGenerateStrategy(lead, idx)}
@@ -574,6 +563,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                 })}
               </div>
           ) : (
+              // LIST VIEW
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
@@ -699,6 +689,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
         );
     }
     
+    // Fallback for other modes (Identity, Needs, Comments)
     return (
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
             <h3 className="font-bold text-lg mb-4 text-slate-800 border-b pb-2">{t.analysis.results.reportTitle}</h3>
@@ -719,8 +710,13 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-8">
+      
+      {/* Top Section: Input + Tips Stacked Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* Input Area */}
           <div className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6">
+                  {/* Mode Selector - Grid Layout */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                       {Object.keys(ANALYSIS_MODES).map((key) => {
                          const m = ANALYSIS_MODES[key];
@@ -748,6 +744,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                       })}
                   </div>
 
+                  {/* Instructional Tip */}
                   <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-3 flex items-start gap-2">
                        <Info className="text-blue-500 shrink-0 mt-0.5" size={16} />
                        <p className="text-xs text-blue-700 leading-relaxed">{t.analysis.inputTip}</p>
@@ -793,6 +790,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
                   {error && <div className="mt-4 p-4 bg-red-50 text-red-700 text-sm border-t border-red-100 flex items-center gap-2 rounded-lg"><AlertTriangle size={16}/> {error}</div>}
           </div>
 
+          {/* Pro Tips (Right Column, aligns with Input) */}
           <div className="lg:col-span-4 bg-indigo-900 text-white rounded-2xl p-6 shadow-lg relative overflow-hidden h-fit">
                <div className="absolute top-0 right-0 -mr-6 -mt-6 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
                <div className="flex items-center gap-2 mb-4">
@@ -814,6 +812,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
           </div>
       </div>
 
+      {/* Results Section (Full Width, below Input/Tips) */}
       {result && (
         <div className="w-full animate-in slide-in-from-bottom-4 duration-500">
            {renderResults()}

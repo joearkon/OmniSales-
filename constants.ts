@@ -1,7 +1,7 @@
 
 import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
-export const APP_VERSION = 'v1.2.4';
+export const APP_VERSION = 'v1.2.0';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
@@ -50,40 +50,6 @@ export const TRANSLATIONS = {
       selectAll: "Select All",
       copyInfo: "Copy Info"
     },
-    settings: {
-        title: "Factory Brain Settings",
-        desc: "Feed your company info to AI for personalized outreach scripts.",
-        tabs: {
-            basic: "Basic Info",
-            knowledge: "Knowledge Base"
-        },
-        name: "Factory/Company Name",
-        products: "Core Products",
-        productsPlaceholder: "e.g., Private Care Gel, Probiotic Wash, Tightening Mask...",
-        advantages: "Core Advantages (USPs)",
-        advantagesPlaceholder: "e.g., FDA Certified, 100k Clean Room, Patented Formula...",
-        policy: "Cooperation Policy",
-        policyPlaceholder: "e.g., Low MOQ (500pcs), Free Design...",
-        
-        // Enriched Fields
-        certifications: "Certifications",
-        certPlaceholder: "e.g., ISO22716, GMPC, FDA, CE...",
-        capacity: "Production Capacity",
-        capacityPlaceholder: "e.g., 500k units/day, 10 Production Lines...",
-        targetMarkets: "Target Markets",
-        marketsPlaceholder: "e.g., USA, EU, Southeast Asia...",
-        keyClients: "Success Stories / Key Clients",
-        clientsPlaceholder: "e.g., Served 50+ Amazon Top Sellers...",
-        website: "Website",
-        websitePlaceholder: "e.g., www.omnifactory.com",
-
-        knowledgeBase: "Extended Knowledge (Manuals/Docs)",
-        knowledgePlaceholder: "Paste your product manuals, brand story, or detailed certificates here...",
-        upload: "Asset Upload",
-        uploadDesc: "Upload factory photos, certificates, or product images (Max 5)",
-        save: "Save Configuration",
-        saved: "Saved!"
-    },
     crm: {
       title: "CRM Lead Management",
       subtitle: "Manage, filter, and export your lead pipeline.",
@@ -106,12 +72,6 @@ export const TRANSLATIONS = {
         delete: "Delete",
         addTag: "Add Tag",
         placeholder: "Tag name..."
-      },
-      sorting: {
-        sortBy: "Sort By",
-        dateDesc: "Date (Newest)",
-        valueHigh: "Value (High to Low)",
-        outreach: "Outreach (Opp. First)"
       },
       notes: "Notes",
       emptyNote: "Click to add private notes...",
@@ -160,7 +120,7 @@ export const TRANSLATIONS = {
       },
       modes: {
         LeadMining: "Value Assessment (High Quality Clients)",
-        Identity: "Identify Identity (User vs Biz)",
+        Identity: "Identity Identification (User vs Biz)",
         Needs: "Mine Needs & Pain Points",
         Comments: "Comment Insights"
       },
@@ -248,40 +208,6 @@ export const TRANSLATIONS = {
       selectAll: "全选",
       copyInfo: "复制信息"
     },
-    settings: {
-        title: "工厂大脑设置 (Factory Brain)",
-        desc: "投喂您的工厂/公司信息，AI 将为您生成专属的“带货”话术。",
-        tabs: {
-            basic: "基本信息",
-            knowledge: "扩展知识库"
-        },
-        name: "工厂/公司名称",
-        products: "核心产品线",
-        productsPlaceholder: "例如：私密凝胶、益生菌洗液、紧致贴膜...",
-        advantages: "核心优势 (USP)",
-        advantagesPlaceholder: "例如：FDA认证、十万级净化车间、独家草本配方...",
-        policy: "合作/招商政策",
-        policyPlaceholder: "例如：低起订量(500支起)、免费设计包装...",
-        
-        // Enriched Fields
-        certifications: "资质认证",
-        certPlaceholder: "例如：ISO22716, GMPC, FDA, CE认证...",
-        capacity: "产能规模",
-        capacityPlaceholder: "例如：日产30万支，拥有10条全自动生产线...",
-        targetMarkets: "目标/优势市场",
-        marketsPlaceholder: "例如：欧美市场、东南亚、国内私域/电商...",
-        keyClients: "成功案例/合作品牌",
-        clientsPlaceholder: "例如：服务过50+亚马逊Top卖家，国内某知名连锁...",
-        website: "公司官网",
-        websitePlaceholder: "例如：www.omnifactory.com",
-
-        knowledgeBase: "扩展知识 (手册/文档)",
-        knowledgePlaceholder: "在此粘贴您的详细产品手册、品牌故事或资质证书描述...",
-        upload: "资产上传",
-        uploadDesc: "上传工厂实景、资质证书或产品图 (最多5张)",
-        save: "保存配置",
-        saved: "已保存！"
-    },
     crm: {
       title: "CRM 客户管理看板",
       subtitle: "管理、筛选及导出您的客户漏斗。",
@@ -304,12 +230,6 @@ export const TRANSLATIONS = {
         delete: "批量删除",
         addTag: "添加标签",
         placeholder: "输入标签名..."
-      },
-      sorting: {
-        sortBy: "排序方式",
-        dateDesc: "发布时间 (由新到旧)",
-        valueHigh: "价值等级 (由高到低)",
-        outreach: "触达机会 (未触达优先)"
       },
       notes: "备注",
       emptyNote: "点击添加私密备注...",
