@@ -385,7 +385,7 @@ export const MarketAnalyzer: React.FC<MarketAnalyzerProps> = ({ lang, onAddToCRM
         const source = sortedLeads || res.data.leads;
         rows = source.map(l => [l.platform, l.accountName, l.leadType, l.valueCategory, l.outreachStatus, l.date || '', l.reason, l.suggestedAction, l.context]);
     } else {
-        headers = [r.category, r.item, r.detail];
+        headers = [t.analysis.csvHeaders.category, t.analysis.csvHeaders.item, t.analysis.csvHeaders.detail];
         if (res.mode === 'Identity') {
            rows = res.data.map(i => [i.platform, i.name, `${i.identity} - ${i.description}`]);
         } else if (res.mode === 'Needs') {

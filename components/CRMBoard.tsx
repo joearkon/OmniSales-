@@ -2,7 +2,7 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { CRMLead, Language, DeepPersonaResult, CompanyProfile } from '../types';
 import { CRM_STATUSES, TRANSLATIONS } from '../constants';
-import { Trash2, Edit2, User, Factory, Smartphone, MessageSquare, Download, Upload, AlertCircle, Tag, Plus, X, Check, Search, PieChart, TrendingUp, Users, CheckSquare, Square, Copy, ArrowUpDown, Microscope, Brain } from 'lucide-react';
+import { Trash2, Edit2, User, Factory, Smartphone, MessageSquare, Download, Upload, AlertCircle, Tag, Plus, X, Check, Search, PieChart, TrendingUp, Users, CheckSquare, Square, Copy, ArrowUpDown, Microscope, Brain, Zap } from 'lucide-react';
 import { DeepAnalysisModal } from './DeepAnalysisModal';
 
 interface CRMBoardProps {
@@ -11,11 +11,9 @@ interface CRMBoardProps {
   onDelete: (id: string) => void;
   onImport: (importedLeads: CRMLead[]) => void;
   lang: Language;
-  // Deep Analysis needs profile access
-  // Ideally this would be passed down, but for now we might need to assume it's available or pass it through App
+  companyProfile?: CompanyProfile;
 }
 
-// Update props to accept companyProfile for the deep analysis agent
 export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfile }> = ({ leads, onUpdate, onDelete, onImport, lang, companyProfile }) => {
   const t = TRANSLATIONS[lang];
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -83,17 +81,14 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
             const dateB = getDate(b);
             const diff = dateB - dateA; // Newest first
             if (diff !== 0) return diff;
-            // Secondary sort: Value
             return getValueRank(b.valueCategory) - getValueRank(a.valueCategory);
         } else if (sortOption === 'valueHigh') {
             const valDiff = getValueRank(b.valueCategory) - getValueRank(a.valueCategory);
             if (valDiff !== 0) return valDiff;
-            // Secondary sort: Date
             return getDate(b) - getDate(a);
         } else if (sortOption === 'outreach') {
             const outDiff = getOutreachRank(b.outreachStatus) - getOutreachRank(a.outreachStatus);
             if (outDiff !== 0) return outDiff;
-            // Secondary sort: Value
             return getValueRank(b.valueCategory) - getValueRank(a.valueCategory);
         }
         return 0;
@@ -443,7 +438,7 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
                                     lead.leadType === 'KOL' ? <Smartphone size={18} className="text-rose-600"/> :
                                     <User size={18} className="text-green-600"/>}
                                     
-                                    <span className="font-bold text-lg text-slate-900">{lead.accountName}</span>
+                                    <span className="font-bold text-lg text-slate-900 break-words">{lead.accountName}</span>
                                     
                                     <span className="text-xs bg-slate-100 px-2 py-0.5 rounded-full text-slate-500 border border-slate-200">{lead.platform}</span>
                                     
@@ -459,15 +454,9 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
                                 </div>
                                 <p className="text-sm text-slate-600 mb-3 bg-slate-50 p-2 rounded border border-slate-100 italic">"{lead.context}"</p>
                                 
-                                {/* Tags */}
+                                {/* Quick Actions Row */}
                                 <div className="flex flex-wrap items-center gap-2 mb-3">
-                                    {(lead.tags || []).map(tag => (
-                                        <span key={tag} className="bg-white text-indigo-700 text-xs px-2 py-1 rounded-full border border-indigo-100 flex items-center gap-1 shadow-sm">
-                                            <Tag size={10} /> {tag}
-                                            <button onClick={() => handleRemoveTag(lead.id, lead.tags, tag)} className="hover:text-red-500"><X size={10} /></button>
-                                        </span>
-                                    ))}
-                                    
+                                    {/* Add Tag Action */}
                                     {addingTagId === lead.id ? (
                                         <div className="flex items-center gap-1 animate-in fade-in">
                                             <input 
@@ -485,12 +474,32 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
                                     ) : (
                                         <button 
                                             onClick={() => setAddingTagId(lead.id)}
-                                            className="text-xs text-slate-400 hover:text-indigo-600 border border-dashed border-slate-300 rounded px-2 py-0.5 flex items-center gap-1 hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                                            className="text-xs text-slate-500 hover:text-indigo-600 border border-slate-200 bg-slate-50 hover:bg-white hover:border-indigo-200 rounded-md px-2 py-1 flex items-center gap-1 transition-all"
                                         >
-                                            <Plus size={10} /> {t.crm.addTag}
+                                            <Plus size={12} /> {t.crm.addTag}
                                         </button>
                                     )}
+
+                                    {/* Deep Analysis Action */}
+                                    <button 
+                                        onClick={() => setDeepAnalyzeLead(lead)}
+                                        className={`flex items-center justify-center gap-1 text-xs font-medium px-2 py-1 rounded-md border transition-all ${hasDeepAnalysis ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-purple-300 hover:text-purple-600 hover:bg-white'}`}
+                                    >
+                                        <Microscope size={12} /> {t.crm.deepAnalyze}
+                                    </button>
                                 </div>
+
+                                {/* Tags Display */}
+                                {lead.tags && lead.tags.length > 0 && (
+                                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                                        {lead.tags.map(tag => (
+                                            <span key={tag} className="bg-white text-indigo-700 text-xs px-2 py-1 rounded-full border border-indigo-100 flex items-center gap-1 shadow-sm">
+                                                <Tag size={10} /> {tag}
+                                                <button onClick={() => handleRemoveTag(lead.id, lead.tags, tag)} className="hover:text-red-500"><X size={10} /></button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
 
                                 {/* Notes */}
                                 {editingId === lead.id ? (
@@ -518,7 +527,7 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
                                 )}
                             </div>
 
-                            {/* Actions Column */}
+                            {/* Actions Column (Status & Delete) */}
                             <div className="flex flex-col gap-3 min-w-[150px] border-l border-slate-100 pl-4 md:pl-0 md:border-l-0">
                                 <div className="flex flex-col">
                                     <span className="text-xs text-slate-400 font-semibold uppercase mb-1">{t.crm.status}</span>
@@ -533,14 +542,6 @@ export const CRMBoard: React.FC<CRMBoardProps & { companyProfile?: CompanyProfil
                                     </select>
                                 </div>
                                 
-                                {/* Deep Analysis Button */}
-                                <button 
-                                    onClick={() => setDeepAnalyzeLead(lead)}
-                                    className={`flex items-center justify-center gap-1.5 text-xs font-bold py-2 rounded-lg border transition-all ${hasDeepAnalysis ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-purple-300 hover:text-purple-600'}`}
-                                >
-                                    <Microscope size={14} /> {t.crm.deepAnalyze}
-                                </button>
-
                                 <div className="mt-auto flex justify-end">
                                     <button 
                                         onClick={() => onDelete(lead.id)}
