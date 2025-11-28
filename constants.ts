@@ -1,7 +1,7 @@
 
 import { LucideIcon, Factory, Users, Globe, ShoppingBag, Smartphone, Ticket, PieChart, FileText, TrendingUp, BarChart, MessageCircle, UserCheck, Target, List } from 'lucide-react';
 
-export const APP_VERSION = 'v1.3.6';
+export const APP_VERSION = 'v1.4.0';
 
 export const LEAD_TYPES: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   'B2B': { label: 'B2B Partner', icon: Factory, color: 'bg-blue-100 text-blue-700' },
@@ -126,8 +126,8 @@ export const TRANSLATIONS = {
         valueHigh: "Value (High to Low)",
         outreach: "Outreach (Opp. First)"
       },
-      notes: "Notes",
-      emptyNote: "Click to add private notes...",
+      notes: "Timeline & Notes",
+      emptyNote: "No activity yet.",
       searchPlaceholder: "Search leads, notes, tags...",
       tags: "Tags",
       addTag: "Add Tag",
@@ -141,11 +141,23 @@ export const TRANSLATIONS = {
       exportJSON: "Export Backup (JSON)",
       importSuccess: "Successfully imported leads.",
       importError: "Failed to import file. Please check format.",
-      csvHeaders: ['ID', 'Account Name', 'Platform', 'Type', 'Value Category', 'Status', 'Notes', 'Tags', 'Context', 'Added At'],
+      csvHeaders: ['ID', 'Account Name', 'Platform', 'Type', 'Value Category', 'Status', 'Notes', 'Tags', 'Context', 'Added At', 'Next Follow Up'],
       
       // Deep Analysis
       deepAnalyze: "Deep Persona Analysis",
-      analyzed: "Analyzed"
+      analyzed: "Analyzed",
+
+      // Timeline & Follow-up
+      timeline: {
+          title: "Activity Timeline",
+          logCall: "Call",
+          logWechat: "WeChat",
+          logEmail: "Email",
+          logNote: "Note",
+          placeholder: "Log conversation details...",
+          add: "Add Log",
+          nextFollowUp: "Next Follow-up"
+      }
     },
     deepAnalysis: {
         title: "Deep Persona Agent",
@@ -362,8 +374,8 @@ export const TRANSLATIONS = {
         valueHigh: "价值等级 (由高到低)",
         outreach: "触达机会 (未触达优先)"
       },
-      notes: "备注",
-      emptyNote: "点击添加私密备注...",
+      notes: "跟进时间轴",
+      emptyNote: "暂无跟进记录。",
       searchPlaceholder: "搜索客户名、备注、标签...",
       tags: "客户标签",
       addTag: "添加标签",
@@ -377,11 +389,23 @@ export const TRANSLATIONS = {
       exportJSON: "导出备份 (JSON)",
       importSuccess: "成功导入客户数据。",
       importError: "导入失败，请检查文件格式。",
-      csvHeaders: ['ID', '账号名', '平台', '类型', '价值等级', '状态', '备注', '标签', '上下文', '添加时间'],
+      csvHeaders: ['ID', '账号名', '平台', '类型', '价值等级', '状态', '备注', '标签', '上下文', '添加时间', '下次跟进'],
       
       // Deep Analysis
       deepAnalyze: "深度画像探针",
-      analyzed: "已深度分析"
+      analyzed: "已深度分析",
+
+      // Timeline & Follow-up
+      timeline: {
+          title: "跟进时间轴",
+          logCall: "电话",
+          logWechat: "微信",
+          logEmail: "邮件",
+          logNote: "备注",
+          placeholder: "记录沟通细节...",
+          add: "添加记录",
+          nextFollowUp: "下次跟进时间"
+      }
     },
     deepAnalysis: {
         title: "深度画像探针 (Persona Agent)",

@@ -92,13 +92,24 @@ export interface DeepPersonaResult {
   };
 }
 
+export interface ActivityLog {
+  id: string;
+  type: 'Call' | 'WeChat' | 'Email' | 'Note' | 'Meeting';
+  content: string;
+  date: string; // ISO string
+}
+
 export interface CRMLead extends MinedLead {
   id: string;
   status: 'New' | 'Contacted' | 'Qualified' | 'Lost';
   addedAt: string;
-  notes: string;
+  notes: string; // Keep for backward compatibility, but encourage timeline usage
   tags: string[];
   deepAnalysis?: DeepPersonaResult; // Store the deep analysis here
+  
+  // Enhanced Fields
+  timeline?: ActivityLog[];
+  nextFollowUp?: string; // YYYY-MM-DD
 }
 
 export interface LeadMiningResult {
